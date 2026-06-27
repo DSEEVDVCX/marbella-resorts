@@ -1,3 +1,4 @@
+<img width="1908" height="959" alt="11" src="https://github.com/user-attachments/assets/1d248eba-252e-4497-8a85-fad4d81e34af" />
 # Sadeem Resorts — Electronic Booking System
 
 A single-page, responsive booking system designed for multiple resorts/chalets. It works seamlessly on both mobile devices and desktops.
