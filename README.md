@@ -1,57 +1,149 @@
-<img width="1908" height="959" alt="11" src="https://github.com/user-attachments/assets/1d248eba-252e-4497-8a85-fad4d81e34af" />
-# Sadeem Resorts — Electronic Booking System
+# منتجعات ماربيلا — نظام الحجز الإلكتروني
 
-A single-page, responsive booking system designed for multiple resorts/chalets. It works seamlessly on both mobile devices and desktops.
+نظام حجز لاستراحات/شاليهات متعددة، يعمل على الجوال والحاسوب. جميع البيانات والتفضيلات مخزّنة في **Firebase** (Firestore + Authentication) — لا يُستخدم `localStorage`/`sessionStorage` أو كاش PWA نهائياً.
 
-## Features
-- Image gallery for each resort
-- Google Maps location integration
-- Interactive calendar displaying available and booked dates
-- Direct booking requests via WhatsApp (select resort, date, and send)
-- Social media integration (Instagram, TikTok, WhatsApp)
-- Fully responsive RTL (Right-to-Left) Arabic design
-- **New:** Advanced UI with animations, PWA support, and an Admin Dashboard using localStorage.
+## المزايا
+- معرض صور لكل استراحة
+- موقع على خرائط جوجل
+- تقويم تفاعلي يعرض المواعيد المتاحة والمحجوزة
+- إرسال طلبات الحجز مباشرة عبر واتساب (اختيار الاستراحة والتاريخ)
+- تكامل مع وسائل التواصل (انستغرام، تيك توك، واتساب)
+- تصميم عربي RTL متجاوب بالكامل
+- واجهة متقدمة مع أنيميشن وتأثيرات بصرية
+- لوحة تحكم للأدمن محمية بـ Firebase Authentication
+- تفضيلات لكل زائر (الثيم، اللغة، المفضّلة) تُحفظ في Firestore عبر مصادقة مجهولة
 
-## Project Structure
+## بنية المشروع
 ```text
-index.html                  ← Main Landing Page (Hero, Units, Map)
-unit-details.html           ← Unit specific details page
-faq.html                    ← Frequently Asked Questions
-cancellation-policy.html    ← Cancellation Policy rules
-admin.html                  ← Admin Dashboard (Secured with password)
-manifest.json               ← PWA Manifest
-sw.js                       ← Service Worker for offline support
+index.html                  ← الصفحة الرئيسية (البطل، الاستراحات، الخريطة، التقويم)
+unit-details.html           ← صفحة تفاصيل الاستراحة + التقييمات
+faq.html                    ← الأسئلة الشائعة
+cancellation-policy.html     ← سياسة الإلغاء
+about.html                  ← من نحن
+admin.html                  ← لوحة التحكم (محمية بـ Firebase Auth)
 css/
-  ├── style.css             ← Main stylesheet
-  └── admin.css             ← Admin Dashboard styles
+  ├── style.css             ← التنسيق الرئيسي
+  └── admin.css             ← تنسيق لوحة التحكم
 js/
-  ├── data.js               ← Data & Settings (Reads from localStorage)
-  ├── app.js                ← Main Logic (Calendar, WhatsApp, UI)
-  ├── admin.js              ← Admin Dashboard Logic (CRUD)
-  └── shared.js             ← Shared utilities across files
-assets/images/              ← Resort images and logos
+  ├── firebase-loader.js    ← مُحمِّل Firebase المركزي (يحقن وسميات CDN + utils + الإعداد + data.js)
+  ├── utils.js              ← أدوات عامة (esc() لتهريب HTML ومنع XSS)
+  ├── firebase-config.js    ← إعداد Firebase + بريد الأدمن (ADMIN_EMAIL) + تفعيل offline persistence
+  ├── theme-init.js         ← تفادي وميض الثيم (يُحمّل في <head> كل صفحة)
+  ├── data.js               ← البيانات الافتراضية + طبقة MarbellaStore (Firestore/Auth)
+  ├── shared.js             ← أدوات مشتركة (اللغة، الثيم، التنقل، Lightbox بفخ تركيز)
+  ├── app.js                ← منطق الصفحة الرئيسية (التقويم، واتساب، الواجهة)
+  ├── unit-details.js       ← منطق صفحة التفاصيل (المعرض، التقييمات)
+  ├── faq.js                ← منطق صفحة الأسئلة الشائعة
+  ├── cancellation-policy.js ← منطق صفحة سياسة الإلغاء
+  ├── about.js              ← تهيئة صفحة من نحن
+  └── admin.js              ← منطق لوحة التحكم (CRUD + Auth)
+assets/images/              ← صور الاستراحات والشعار
 ```
 
-## Local Setup
-To run the project locally, simply open `index.html` in your browser, or start a simple local server:
+## التشغيل محلياً
+افتح `index.html` في المتصفح، أو شغّل خادماً محلياً:
 ```powershell
 python -m http.server 8000
 ```
-Then visit: `http://localhost:8000`
+ثم زر: `http://localhost:8000`
 
-## Live Deployment
-The project is hosted via **GitHub Pages**.
-Live Website: [https://dseevdvcx.github.io/sadeem-resorts/](https://dseevdvcx.github.io/sadeem-resorts/)
+> ملاحظة: تحتاج الصفحات إلى اتصال بالإنترنت لتحميل Firebase وتحميل/حفظ البيانات من Firestore.
 
-## Customization (No coding required)
-To modify settings quickly:
-- Open `js/data.js` to change WhatsApp numbers, brand name, social media links, and the default `UNITS` array (resort details, prices, features).
-- To update the logo, replace `assets/images/logo.png` with your new logo image.
+## إعداد Firebase (مطلوب مرة واحدة)
+1. أنشئ مشروعاً على [Firebase Console](https://console.firebase.google.com/) وضع قيم `firebaseConfig` في `js/firebase-config.js` (موجودة مسبقاً).
+2. **Authentication ← Sign-in method** فعّل:
+   - **Email/Password** (لحساب الأدمن).
+   - **Anonymous** (مطلوب لـ: تفضيلات الزوار الثيم/اللغة/المفضّلة **وإرسال الحجوزات والتقييمات**). إذا عطّلته، فلن تُحفظ الحجوزات في Firestore ولن يراها الأدمن رغم إرسالها عبر واتساب.
+3. **Authentication ← Users** أنشئ مستخدماً ببريد وكلمة مرور. يجب أن يطابق البريد قيمة `ADMIN_EMAIL` في `js/firebase-config.js` (الافتراضي `admin@marbella-resorts.com` — عدّله إلى بريد تملكه إن أردت استعادة كلمة المرور لاحقاً).
+4. **Firestore Database** أنشئ قاعدة البيانات. ستُزرع الإعدادات والاستراحات تلقائياً عند أول تشغيل.
 
-## Admin Dashboard
-Access the `admin.html` page to manage your resorts directly from the browser.
-- **Login:** The dashboard is protected by a password.
-- **Features:** Update booked dates, change prices, edit resort descriptions, and manage social links.
-- **Storage:** Data is saved locally in your browser using `localStorage`.
+### مجموعات Firestore المستخدمة
+| المجموعة | الوثيقة | الغرض |
+|---|---|---|
+| `settings` | `main` | الإعدادات العامة (العلامة، واتساب، روابط…) |
+| `units` | `{unitId}` | بيانات الاستراحات + التواريخ المحجوزة + الإعجابات |
+| `bookings` | تلقائية | طلبات الحجز |
+| `reviews` | تلقائية | تقييمات الضيوف |
+| `users` | `{uid}` | تفضيلات الزائر/الأدمن (lang, theme, favorites) |
 
-*Note: Since this relies on `localStorage`, your admin changes will only apply to the specific browser/device you are using. For cross-device syncing, a backend database (like Firebase or Supabase) would be required.*
+### قواعد أمان Firestore المقترحة
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() { return isSignedIn() && request.auth.token.email == 'admin@marbella-resorts.com'; }
+
+    function isStr(v, maxLen) { return v is string && v.size() <= maxLen; }
+
+    function validBooking(d) {
+      return d is map
+        && d.keys().hasOnly(['id','unitId','unitName','date','name','phone','price','currency','notes','createdAt'])
+        && d.keys().hasAll(['id','unitId','unitName','date','name','phone','price','currency','createdAt'])
+        && isStr(d.id, 64)
+        && isStr(d.unitId, 64)
+        && isStr(d.unitName, 120)
+        && isStr(d.date, 20)
+        && isStr(d.name, 100)
+        && isStr(d.phone, 30)
+        && d.price is number && d.price >= 0
+        && isStr(d.currency, 10)
+        && isStr(d.createdAt, 40)
+        && (!d.keys().hasAll(['notes']) || isStr(d.notes, 1000));
+    }
+
+    function validReview(d) {
+      return d is map
+        && d.keys().hasOnly(['unitId','name','text','rating','createdAt'])
+        && d.keys().hasAll(['unitId','name','text','rating','createdAt'])
+        && isStr(d.unitId, 64)
+        && isStr(d.name, 100)
+        && isStr(d.text, 1000)
+        && d.rating is number && d.rating % 1 == 0 && d.rating >= 1 && d.rating <= 5
+        && isStr(d.createdAt, 40);
+    }
+
+    match /settings/main { allow read: if true; allow write: if isAdmin(); }
+
+    match /units/{id} {
+      allow read: if true;
+      // الكتابة للأدمن فقط. (إن أردت السماح بتحديث الإعجابات/التواريخ من الموقع فعّل السطر التالي بدلاً منه)
+      allow write: if isAdmin();
+    }
+
+    match /bookings/{id} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn() && validBooking(request.resource.data);   // الزوار المسجّلون كمجهولين يمكنهم إرسال طلب
+      allow delete, update: if isAdmin();
+    }
+
+    match /reviews/{id} {
+      allow read: if true;
+      allow create: if isSignedIn() && validReview(request.resource.data);
+      allow delete, update: if isAdmin();
+    }
+
+    match /users/{uid} {
+      allow read, delete: if isSignedIn() && request.auth.uid == uid;
+      allow create, update: if isSignedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['lang','theme','favorites','updatedAt','createdAt']);
+    }
+  }
+}
+```
+> ملاحظة: عند جعل كتابة `units` للأدمن فقط، لن تُحدّث الإعجابات/التواريخ تلقائياً من الموقع (وهو الأأمن). يمكن للأدمن إدارة التواريخ المحجوزة من لوحة التحكم.
+
+## التخصيص
+- لتعديل الإعدادات والاستراحات بسرعة: `js/data.js` يحتوي المصفوفات الافتراضية (`SETTINGS`, `UNITS`) التي تُزرع في Firestore عند أول تشغيل. بعدها تُدار البيانات من لوحة التحكم.
+- لتغيير الشعار: استبدل `assets/images/logo.png`.
+
+## لوحة التحكم
+افتح `admin.html`. الدخول عبر حساب الأدمن (Email/Password) في Firebase Authentication.
+- إدارة التواريخ المحجوزة، تعديل الأسعار والأوصاف، سجل الحجوزات، تصدير CSV، الإعدادات العامة، تغيير كلمة المرور.
+- «نسيت كلمة المرور؟» يرسل رابط استعادة عبر البريد المسجّل في `ADMIN_EMAIL`.
+
+## النشر
+المشروع صفحات ثابتة — يصلح للنشر على GitHub Pages أو Firebase Hosting أو أي استضافة ثابتة.
+
+> **ملاحظة حول CSP:** `js/firebase-loader.js` يحقن وسميات Firebase عبر `document.write` أثناء التحليل الأولي. لا يوجد CSP حالياً. إن أضفت سياسة أمان محتوى لاحقاً (موصى بها على Firebase Hosting عبر `firebase.json`/`_headers`)، يجب أن تسمح `script-src` بـ `https://www.gstatic.com` و `'self'`، وألا تمنع السكربتات المُدرجة عبر المُحلّل (parser-inserted) — وإلا فلن يُحمَّل Firebase ويصبح الموقع غير وظيفي.
+

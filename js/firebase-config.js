@@ -22,7 +22,15 @@ window.db = firebase.firestore();
 window.auth = firebase.auth();
 
 // تفعيل التخزين المؤقت المحلي (offline persistence) لتفادي إعادة جلب الإعدادات/الاستراحات
-// مع كل تنقّل بين الصفحات، وتحسين الأداء. يُتجاهل بهدوء في المتصفحات غير الداعمة (متعدد التبويبات).
+// مع كل تنقّل بين الصفحات. نستخدم الوضع أحادي التبويب (الوحيد غير المُهمَل في compat SDK)؛
+// تزامن البيانات بين التبويبات يضمنه مستمعو Firestore اللحظيون عبر الخادم.
+// يُتجاهل بهدوء في المتصفحات غير الداعمة أو عند فتح تبويب ثانٍ (يسقط للشبكة).
 try {
-  db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+  db.enablePersistence().catch(function(err){
+    if(err && err.code === 'failed-precondition'){
+      // تبويب آخر فعّل المثابرة بالفعل — طبيعي، نسقط للشبكة في هذا التبويب
+    } else if(err && err.code === 'unimplemented'){
+      // المتصفح لا يدعم المثابرة
+    }
+  });
 } catch (e) { /* متصفح غير داعم */ }

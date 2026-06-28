@@ -22,16 +22,26 @@
   --r-soft:10px;
   --r-card:8px;
   --ease:cubic-bezier(.22,.61,.36,1);
+  --trans-fast:0.2s ease;
+  /* توكنز توافقية (تُكمّل قواعد New Features وتتكيّف مع الثيم) */
+  --r-sm:var(--r-sharp);
+  --r-pill:2rem;
+  --surface:var(--sand-2);
+  --border:var(--line);
+  --on-surface:var(--ink);
+  --primary:var(--brass);
+  --on-primary:var(--night);
+  --shadow-xs:0 1px 2px rgba(36,31,24,.08);
   /* ألوان شفافة (تتكيّف مع الوضع الداكن) */
   --night-72:rgba(21,36,43,.72);
-  --night-78:var(--night-78);
+  --night-78:rgba(21,36,43,.78);
   --night-82:rgba(21,36,43,.82);
   --night-85:rgba(21,36,43,.85);
   --night-92:rgba(21,36,43,.92);
   --night-94:rgba(21,36,43,.94);
   --night-96:rgba(21,36,43,.96);
-  --night-97:var(--night-97);
-  --night-65:var(--night-65);
+  --night-97:rgba(21,36,43,.97);
+  --night-65:rgba(21,36,43,.65);
   --night-30:rgba(21,36,43,.30);
   --on-night:#cdd6ce;
   --on-night-invert:#1a1410;
@@ -66,6 +76,11 @@
   --on-night-invert:#e3e8e4;
   --ink-05:rgba(227,232,228,.05);
   --ink-12:rgba(227,232,228,.10);
+  --surface:var(--night-2);
+  --border:var(--line);
+  --on-surface:var(--ink);
+  --on-primary:var(--sand);
+  --shadow-xs:0 1px 2px rgba(0,0,0,.4);
 }
 body{transition:background .3s var(--ease),color .3s var(--ease)}
 

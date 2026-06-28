@@ -60,9 +60,7 @@ const DICT = {
     "book-deposit": "تأكيد الحجز يتطلب دفع عربون بقيمة 500 درهم لحساب رقم:",
     "pledge-deposit": "أتعهد بدفع تأمين مسترجع (يُسترد في حال عدم وجود تلف أو فقد أو كسر).",
     "pledge-pool": "أتعهد بعدم استخدام أي مواد تغير لون المسبح (صابون، ألوان، إلخ).",
-    "directions-title": "طريقة الوصول",
-    "share-link": "نسخ الرابط",
-    "copied": "تم النسخ!" 
+    "directions-title": "طريقة الوصول"
   },
   en: {
     "nav-about": "About Us",
@@ -120,13 +118,21 @@ const DICT = {
     "book-deposit": "Booking requires a 500 AED deposit to account:",
     "pledge-deposit": "I pledge to pay a refundable deposit (refunded if no damage/loss occurs).",
     "pledge-pool": "I pledge not to use any substances that change the pool water color (dyes, soap, etc).",
-    "directions-title": "Directions",
-    "share-link": "Copy Link",
-    "copied": "Copied!" 
+    "directions-title": "Directions"
   }
 };
 
-let currentLang = localStorage.getItem("marbella_lang") || "ar";
+let currentLang = (window.MarbellaStore && window.MarbellaStore.getLang) ? window.MarbellaStore.getLang() : "ar";
+
+/* تهيئة موحّدة للصفحات العامة: انتظار Firebase + initShell + رد نداء جاهز */
+window.bootstrapPage = function(onReady){
+  document.addEventListener("DOMContentLoaded", async () => {
+    if(window.MarbellaStore) await window.MarbellaStore.initFirebaseData();
+    initShell();
+    if(typeof onReady === "function"){ try{ await onReady(); }catch(e){ console.error(e); } }
+  });
+};
+
 
 function tr(key){
   return DICT[currentLang][key] || key;
@@ -134,8 +140,8 @@ function tr(key){
 
 function updateLanguage(lang) {
   currentLang = lang;
-  localStorage.setItem("marbella_lang", lang);
-  
+  if(window.MarbellaStore && window.MarbellaStore.setLang) window.MarbellaStore.setLang(lang);
+
   const html = document.documentElement;
   html.lang = lang;
   html.dir = lang === "ar" ? "rtl" : "ltr";
@@ -247,14 +253,11 @@ function initShell(){
 
   const tToggle = $("theme-toggle");
   if(tToggle){
-    const isDark = document.documentElement.classList.contains("theme-dark");
+    const store = window.MarbellaStore;
+    const isDark = store ? (store.getTheme()==="dark") : document.documentElement.classList.contains("theme-dark");
     tToggle.querySelector("i").className = isDark ? "fa-solid fa-sun" : "fa-solid fa-moon";
     tToggle.addEventListener("click",()=>{
-      const html = document.documentElement;
-      html.classList.toggle("theme-dark");
-      const dark = html.classList.contains("theme-dark");
-      try{ localStorage.setItem("marbella_theme", dark?"dark":"light"); }catch(e){}
-      tToggle.querySelector("i").className = dark ? "fa-solid fa-sun" : "fa-solid fa-moon";
+      if(store && store.toggleTheme) store.toggleTheme();
     });
   }
 
@@ -271,13 +274,22 @@ function initShell(){
 }
 
 /* ===== Lightbox ===== */
-let _lbState = {imgs:[], idx:0};
+let _lbState = {imgs:[], idx:0, lastFocus:null};
+function _lbFocusables(){
+  const lb = document.getElementById("lightbox");
+  if(!lb) return [];
+  return [...lb.querySelectorAll('button, [href], input, [tabindex]:not([tabindex="-1"])')].filter(el=>!el.disabled && el.offsetParent!==null);
+}
 function openLightbox(images, startIdx){
   _lbState.imgs = images; _lbState.idx = startIdx || 0;
+  _lbState.lastFocus = document.activeElement;
   let lb = document.getElementById("lightbox");
   if(!lb){
     lb = document.createElement("div");
     lb.id = "lightbox"; lb.className = "lightbox"; lb.hidden = true;
+    lb.setAttribute("role","dialog");
+    lb.setAttribute("aria-modal","true");
+    lb.setAttribute("aria-label","معاينة الصور");
     lb.innerHTML = `
       <button class="lb-close" aria-label="إغلاق"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
       <button class="lb-nav prev" aria-label="السابق"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
@@ -290,21 +302,36 @@ function openLightbox(images, startIdx){
       if(e.target.closest(".lb-prev")) _lbNav(-1);
       if(e.target.closest(".lb-next")) _lbNav(1);
     });
+  }
+  // مستمع لوحة المفاتيح على مستوى المستند (لا يعتمد على بقاء التركيز داخل lb)
+  if(!_lbState.keyBound){
+    _lbState.keyBound = true;
     document.addEventListener("keydown", e => {
-      if(lb.hidden) return;
-      if(e.key === "Escape") closeLightbox();
-      if(e.key === "ArrowLeft") _lbNav(1);
-      if(e.key === "ArrowRight") _lbNav(-1);
+      const lb = document.getElementById("lightbox");
+      if(!lb || lb.hidden) return;
+      if(e.key === "Escape"){ e.preventDefault(); closeLightbox(); }
+      else if(e.key === "ArrowLeft"){ _lbNav(1); }
+      else if(e.key === "ArrowRight"){ _lbNav(-1); }
+      else if(e.key === "Tab"){
+        const f = _lbFocusables();
+        if(!f.length) return;
+        const first = f[0], last = f[f.length-1];
+        if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+        else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+      }
     });
   }
   lb.hidden = false;
   document.body.style.overflow = "hidden";
   _lbRender();
+  // ركّز على زر الإغلاق بعد الفتح
+  requestAnimationFrame(()=>{ const c = lb.querySelector(".lb-close"); if(c) c.focus(); });
 }
 function _lbRender(){
   const lb = document.getElementById("lightbox");
   lb.querySelector("img").src = _lbState.imgs[_lbState.idx];
   lb.querySelector(".lb-counter").textContent = (_lbState.idx+1) + " / " + _lbState.imgs.length;
+  lb.setAttribute("aria-label", "صورة " + (_lbState.idx+1) + " من " + _lbState.imgs.length);
 }
 function _lbNav(dir){
   _lbState.idx = (_lbState.idx + dir + _lbState.imgs.length) % _lbState.imgs.length;
@@ -313,4 +340,9 @@ function _lbNav(dir){
 function closeLightbox(){
   const lb = document.getElementById("lightbox");
   if(lb){ lb.hidden = true; document.body.style.overflow = ""; }
+  // استعادة التركيز إلى العنصر الذي فتح الـlightbox
+  if(_lbState.lastFocus && typeof _lbState.lastFocus.focus === "function"){
+    try{ _lbState.lastFocus.focus(); }catch(e){}
+  }
+  _lbState.lastFocus = null;
 }

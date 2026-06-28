@@ -28,8 +28,8 @@
         <input id="admin-pass" type="password" placeholder="••••••••" autocomplete="current-password" required />
         <button type="submit" class="a-btn" style="width:100%;justify-content:center;margin-top:.6rem"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> دخول</button>
       </form>
-      <p class="login-hint">كلمة المرور الافتراضية: admin123 (يُفضّل تغييرها)</p>
-      <button type="button" class="link-reset" id="reset-pass-link">نسيت كلمة المرور؟ إعادة التعيين إلى الافتراضية</button>
+      <p class="login-hint">الدخول عبر حساب الأدمن في Firebase Authentication.</p>
+      <button type="button" class="link-reset" id="reset-pass-link">نسيت كلمة المرور؟ إرسال رابط الاستعادة</button>
     </div>
   </div>
 
@@ -47,7 +47,7 @@
         <div class="nav-item" data-tab="bookings"><i class="fa-solid fa-receipt" aria-hidden="true"></i> سجل الحجوزات</div>
         <div class="nav-item" data-tab="settings"><i class="fa-solid fa-gear" aria-hidden="true"></i> الإعدادات</div>
       </nav>
-      <div class="sidebar-foot">إصدار 1.0 — تخزين محلي</div>
+      <div class="sidebar-foot">إصدار 2.0 — Firebase</div>
     </aside>
 
     <div class="main-area">
@@ -153,12 +153,8 @@
     </div>
   </div>
 
-    <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-auth-compat.js"></script>
-  <script src="js/firebase-config.js"></script>
-  <script src="js/data.js"></script>
-  <script src="js/admin.js"></script>
+    <!-- Firebase (مُركَّز عبر firebase-loader.js) -->
+  <script src="js/firebase-loader.js?v=2"></script>
+  <script src="js/admin.js?v=2"></script>
 </body>
 </html>

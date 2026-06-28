@@ -48,7 +48,7 @@ function buildFilterChips(){
   if(!wrap) return;
   const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
   const feats = [...new Set(UNITS.flatMap(u => isEn ? (u.featuresEn || []) : (u.features || [])))];
-  wrap.innerHTML = feats.map(f=>`<button class="fb-chip" data-feat="${f}" aria-pressed="false">${f}</button>`).join("");
+  wrap.innerHTML = feats.map(f=>`<button class="fb-chip" data-feat="${esc(f)}" aria-pressed="false">${esc(f)}</button>`).join("");
   wrap.querySelectorAll("[data-feat]").forEach(chip=>{
     chip.addEventListener("click",()=>{
       const f = chip.dataset.feat;
@@ -116,48 +116,48 @@ function renderUnits(filterFn){
     const currency = isEn ? (u.currencyEn || u.currency) : u.currency;
     const featsList = isEn ? (u.featuresEn || u.features) : u.features;
     
-    const features = featsList.map(f=>`<span class="chip"><i class="fa-solid fa-check"></i>${f}</span>`).join("");
+    const features = featsList.map(f=>`<span class="chip"><i class="fa-solid fa-check"></i>${esc(f)}</span>`).join("");
     const dots = u.images.map((_,i)=>`<span${i===0?' class="active"':''}></span>`).join("");
     const fav = store && store.isFavorite(u.id);
     
     return `
     <article class="unit-card">
-      <div class="unit-gallery" id="gal-${u.id}">
-        <img src="${u.images[0] || 'assets/images/placeholder.jpg'}" alt="${name}" width="400" height="250" loading="lazy" />
-        <span class="unit-price">${u.price} <small>${currency} ${tr("unit-night")}</small></span>
+      <div class="unit-gallery" id="gal-${esc(u.id)}">
+        <img src="${esc(u.images[0] || 'assets/images/placeholder.jpg')}" alt="${esc(name)}" width="400" height="250" loading="lazy" />
+        <span class="unit-price">${esc(u.price)} <small>${esc(currency)} ${tr("unit-night")}</small></span>
         
         <div class="likes-badge">
-          <button class="fav-btn ${fav?'on':''}" data-fav="${u.id}" aria-label="${fav?'Remove favorite':'Add favorite'}" aria-pressed="${fav?'true':'false'}">
+          <button class="fav-btn ${fav?'on':''}" data-fav="${esc(u.id)}" aria-label="${fav?'Remove favorite':'Add favorite'}" aria-pressed="${fav?'true':'false'}">
             <i class="fa-${fav?'solid':'regular'} fa-heart"></i>
           </button>
-          <span class="likes-count">${u.likes || 0}</span>
+          <span class="likes-count">${esc(u.likes || 0)}</span>
         </div>
 
         <div class="gallery-nav">
-          <button class="gal-prev" data-unit="${u.id}" aria-label="السابق"><i class="fa-solid fa-chevron-${isEn?'left':'right'}"></i></button>
-          <button class="gal-next" data-unit="${u.id}" aria-label="التالي"><i class="fa-solid fa-chevron-${isEn?'right':'left'}"></i></button>
+          <button class="gal-prev" data-unit="${esc(u.id)}" aria-label="السابق"><i class="fa-solid fa-chevron-${isEn?'left':'right'}"></i></button>
+          <button class="gal-next" data-unit="${esc(u.id)}" aria-label="التالي"><i class="fa-solid fa-chevron-${isEn?'right':'left'}"></i></button>
         </div>
         <div class="gallery-dots">${dots}</div>
       </div>
       <div class="unit-body">
         
-        <h3>${name}</h3>
-        <p class="unit-tag">${tagline}</p>
+        <h3>${esc(name)}</h3>
+        <p class="unit-tag">${esc(tagline)}</p>
         
         <div class="numeric-amenities">
-          <span class="amenity-badge"><i class="fa-solid fa-users"></i> ${capacity}</span>
-          <span class="amenity-badge"><i class="fa-solid fa-bed"></i> ${u.roomsNum || 0} ${tr("rooms")}</span>
-          <span class="amenity-badge"><i class="fa-solid fa-bath"></i> ${u.bathsNum || 0} ${tr("baths")}</span>
-          <span class="amenity-badge"><i class="fa-solid fa-water-ladder"></i> ${u.poolsNum || 1} ${tr("pools")}</span>
+          <span class="amenity-badge"><i class="fa-solid fa-users"></i> ${esc(capacity)}</span>
+          <span class="amenity-badge"><i class="fa-solid fa-bed"></i> ${esc(u.roomsNum || 0)} ${tr("rooms")}</span>
+          <span class="amenity-badge"><i class="fa-solid fa-bath"></i> ${esc(u.bathsNum || 0)} ${tr("baths")}</span>
+          <span class="amenity-badge"><i class="fa-solid fa-water-ladder"></i> ${esc(u.poolsNum || 1)} ${tr("pools")}</span>
         </div>
 
         <div class="unit-features">${features}</div>
         
         <div class="unit-actions">
-          <a class="btn-outline" href="unit-details.html?id=${u.id}"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> ${tr("unit-details")}</a>
-          <a class="btn-outline" href="https://www.google.com/maps?q=${u.lat},${u.lng}&z=15" target="_blank" rel="noopener"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> ${tr("unit-location")}</a>
+          <a class="btn-outline" href="unit-details.html?id=${encodeURIComponent(u.id)}"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> ${tr("unit-details")}</a>
+          <a class="btn-outline" href="https://www.google.com/maps?q=${encodeURIComponent(u.lat)},${encodeURIComponent(u.lng)}&z=15" target="_blank" rel="noopener"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> ${tr("unit-location")}</a>
 
-          <button class="btn btn-wa btn-book" data-book="${u.id}" style="grid-column: 1/-1;"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> ${tr("btn-book")}</button>
+          <button class="btn btn-wa btn-book" data-book="${esc(u.id)}" style="grid-column: 1/-1;"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> ${tr("btn-book")}</button>
         </div>
       </div>
     </article>`;
@@ -226,23 +226,23 @@ function renderFavorites(){
   // إعادة استخدام renderUnits مع فلتر المفضّلة
   const prevGridId = document.getElementById("units-grid");
   grid.innerHTML = favUnits.map(u => {
-    const features = u.features.map(f=>`<span class="chip"><i class="fa-solid fa-check"></i>${f}</span>`).join("");
+    const features = u.features.map(f=>`<span class="chip"><i class="fa-solid fa-check"></i>${esc(f)}</span>`).join("");
     const fav = true;
     return `
     <article class="unit-card">
       <div class="unit-gallery">
-        <img src="${u.images[0]}" alt="صورة ${u.name}" width="400" height="250" loading="lazy" />
-        <span class="unit-price">${u.price} <small>${u.currency}/الليلة</small></span>
-        <button class="fav-btn on" data-fav="${u.id}" aria-label="إزالة من المفضّلة" aria-pressed="true"><i class="fa-solid fa-heart"></i></button>
+        <img src="${esc(u.images[0])}" alt="صورة ${esc(u.name)}" width="400" height="250" loading="lazy" />
+        <span class="unit-price">${esc(u.price)} <small>${esc(u.currency)}/الليلة</small></span>
+        <button class="fav-btn on" data-fav="${esc(u.id)}" aria-label="إزالة من المفضّلة" aria-pressed="true"><i class="fa-solid fa-heart"></i></button>
       </div>
       <div class="unit-body">
         
-        <h3>${u.name}</h3>
-        <p class="unit-tag">${u.tagline}</p>
+        <h3>${esc(u.name)}</h3>
+        <p class="unit-tag">${esc(u.tagline)}</p>
         <div class="unit-features">${features}</div>
         <div class="unit-actions">
-          <a class="btn-outline" href="unit-details.html?id=${u.id}"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> التفاصيل</a>
-          <button class="btn btn-wa btn-book" data-book="${u.id}"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> احجز</button>
+          <a class="btn-outline" href="unit-details.html?id=${encodeURIComponent(u.id)}"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> التفاصيل</a>
+          <button class="btn btn-wa btn-book" data-book="${esc(u.id)}"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> احجز</button>
         </div>
       </div>
     </article>`;
@@ -295,15 +295,19 @@ function initCountdown(){
 function renderTestimonials(){
   const wrap = document.getElementById("testimonials-grid");
   if(!wrap || typeof TESTIMONIALS === "undefined") return;
+  const isEn = currentLang === "en";
   wrap.innerHTML = TESTIMONIALS.map(t=>{
     const stars = "★".repeat(t.rating) + "☆".repeat(5-t.rating);
+    const name = isEn ? (t.nameEn || t.name) : t.name;
+    const role = isEn ? (t.roleEn || t.role) : t.role;
+    const text = isEn ? (t.textEn || t.text) : t.text;
     return `
     <figure class="testimonial-card reveal">
       <div class="t-stars" aria-label="${t.rating} من 5">${stars}</div>
-      <blockquote>"${t.text}"</blockquote>
+      <blockquote>"${text}"</blockquote>
       <figcaption>
-        <span class="t-avatar">${t.name.charAt(0)}</span>
-        <span><strong>${t.name}</strong><small>${t.role}</small></span>
+        <span class="t-avatar">${name.charAt(0)}</span>
+        <span><strong>${name}</strong><small>${role}</small></span>
       </figcaption>
     </figure>`;
   }).join("");
@@ -460,7 +464,7 @@ function closeBooking(){
 }
 
 /* ===== إرسال الطلب إلى واتساب ===== */
-function sendToWhatsApp(){
+async function sendToWhatsApp(){
   if(!selectedDate){
     showToast("اختر تاريخاً من التقويم أولاً","err");
     return false;
@@ -493,21 +497,24 @@ function sendToWhatsApp(){
 
   const url = `https://wa.me/${SETTINGS.whatsapp}?text=${encodeURIComponent(msg)}`;
 
-  // تسجيل الحجز في التخزين المحلي (تظهر في لوحة التحكم)
+  // تسجيل الحجز في Firestore (يظهر في لوحة التحكم). التواريخ المحجوزة يديرها الأدمن من اللوحة.
   if(window.MarbellaStore){
     const isoDate = toISO(selectedDate);
-    window.MarbellaStore.addBooking({
-      id: "BK" + Date.now().toString(36),
-      unitId: currentUnit.id,
-      unitName: currentUnit.name,
-      date: isoDate,
-      name, phone, notes,
-      price: currentUnit.price,
-      currency: currentUnit.currency,
-      createdAt: new Date().toISOString()
-    });
-    // ربط التاريخ كمحجوز لمنع الحجز المزدوج على التقويم العام
-    window.MarbellaStore.markBooked(currentUnit.id, isoDate);
+    try {
+      await window.MarbellaStore.addBooking({
+        id: "BK" + Date.now().toString(36),
+        unitId: currentUnit.id,
+        unitName: currentUnit.name,
+        date: isoDate,
+        name, phone, notes,
+        price: currentUnit.price,
+        currency: currentUnit.currency,
+        createdAt: new Date().toISOString()
+      });
+    } catch(e){
+      console.warn("addBooking failed", e);
+      showToast("تعذّر حفظ الطلب في قاعدة البيانات، لكن سيُرسل عبر واتساب","err");
+    }
   }
 
   // إعادة تمكين الزر بعد الفتح
@@ -656,15 +663,6 @@ function init(){
     setTimeout(()=>openBooking(bookId), 400);
   }
 
-  // إزالة Service Worker لتفادي مشاكل الكاش القديمة
-  if("serviceWorker" in navigator){
-    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-      for(let registration of registrations) {
-        registration.unregister();
-      }
-    });
-  }
-
   // المحور 1 — أنيميشن وتأثيرات
   initTypewriter();
   initCounters();
@@ -702,10 +700,3 @@ async function bootstrap() {
     init();
 }
 bootstrap();
-
-window.shareUnit = function(id) {
-  const url = window.location.origin + window.location.pathname.replace('index.html', '') + 'unit.html?id=' + id;
-  navigator.clipboard.writeText(url).then(() => {
-    alert(typeof tr !== 'undefined' ? tr('copied') : 'تم النسخ!');
-  });
-};

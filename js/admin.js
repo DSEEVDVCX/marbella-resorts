@@ -1,12 +1,13 @@
 /* ============================================================
    لوحة تحكم منتجعات ماربيلا — منطق كامل
-   مصادقة SHA-256 + CRUD + رسوم CSS + تصدير CSV
+   المصادقة عبر Firebase Authentication + CRUD على Firestore.
    ملاحظة: AR_MONTHS/AR_DOW/pad/toISO من data.js عبر store (مصدر مشترك)
    ============================================================ */
 
 const store = window.MarbellaStore;
-// AR_MONTHS/AR_DOW/pad/toISO مُعرّفة عامة في data.js ومتاحة مباشرة هنا
 let calUnitId = null, calDate = new Date();
+let cachedBookings = [];
+let _bookingsUnsub = null;
 
 /* ===== أدوات ===== */
 function toast(msg,isErr){
@@ -15,58 +16,70 @@ function toast(msg,isErr){
   t.className="a-toast"+(isErr?" err":"");t.textContent=msg;
   clearTimeout(t._tm);t._tm=setTimeout(()=>t.remove(),3000);
 }
-function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+// esc() مُعرّفة في js/utils.js (عامة) وتُحمَّل قبل admin.js عبر firebase-loader.js
 
-/* ===== المصادقة =====
-   رمز الجلسة مُشتق من كلمة المرور (أول 16 حرفاً من هاشها) لا قيمة ثابتة،
-   فلا يكفي ضبط قيمة في sessionStorage لتجاوز البوابة. (حماية من جانب العميل فقط.) */
-const SESSION_KEY = "marbella_admin_session";
-async function sessionToken(pass){ return (await store.sha256(pass)).slice(0,16); }
-async function login(pass){
-  const hash = await store.sha256(pass);
-  if(hash === store.getPass()){
-    sessionStorage.setItem(SESSION_KEY, hash.slice(0,16));
-    return true;
-  }
-  return false;
-}
-// التحقق من الجلسة القائمة بمطابقة الرمز المخزّن لكلمة المرور الحالية
-async function verifySession(){
-  const stored = sessionStorage.getItem(SESSION_KEY);
-  if(!stored) return false;
-  const cur = store.getPass();
-  return !!(cur && stored === cur.slice(0,16));
-}
-let sessionOk = false;
+/* ===== المصادقة عبر Firebase Auth =====
+   الأدمن مستخدم Email/Password في Firebase Authentication.
+   الجلسة تُدار تلقائياً بواسطة Firebase (بدون sessionStorage). */
+const ADMIN_EMAIL = window.ADMIN_EMAIL;
 
-document.addEventListener("DOMContentLoaded", async () => { await store.initFirebaseData(); });
 document.getElementById("login-form").addEventListener("submit",async e=>{
   e.preventDefault();
   const pass=document.getElementById("admin-pass").value;
   const err=document.getElementById("login-error");
   const info=document.getElementById("login-info");
   err.textContent=""; info.textContent="";
-  if(await login(pass)){
-    sessionOk=true;
-    showAdmin();
-  } else {
-    err.textContent="كلمة المرور غير صحيحة";
+  try{
+    await auth.signInWithEmailAndPassword(ADMIN_EMAIL, pass);
+    // onAuthStateChanged سيتولّى عرض اللوحة
+  }catch(ex){
+    const code = ex && ex.code ? ex.code : "";
+    let msg = "تعذّر تسجيل الدخول";
+    if(code==="auth/invalid-credential"||code==="auth/wrong-password"||code==="auth/user-not-found") msg="بيانات الدخول غير صحيحة";
+    else if(code==="auth/too-many-requests") msg="محاولات كثيرة، حاول لاحقاً";
+    else if(code==="auth/network-request-failed") msg="تحقّق من اتصال الإنترنت";
+    err.textContent=msg;
     document.getElementById("admin-pass").value="";
   }
 });
-// إعادة تعيين كلمة المرور إلى الافتراضية (admin123)
-document.getElementById("reset-pass-link").addEventListener("click",()=>{
-  store.resetPassword();
-  sessionStorage.removeItem(SESSION_KEY);
-  document.getElementById("login-error").textContent="";
-  document.getElementById("login-info").textContent="تمت إعادة التعيين. استخدم: admin123";
-  document.getElementById("admin-pass").value="";
-  document.getElementById("admin-pass").focus();
+
+document.getElementById("reset-pass-link").addEventListener("click",async ()=>{
+  const info=document.getElementById("login-info");
+  const err=document.getElementById("login-error");
+  err.textContent=""; info.textContent="";
+  try{
+    await auth.sendPasswordResetEmail(ADMIN_EMAIL);
+    info.textContent="تم إرسال رابط استعادة كلمة المرور إلى بريد الأدمن.";
+  }catch(ex){
+    err.textContent="تعذّر إرسال رابط الاستعادة. تأكد من تفعيل Email/Password في Firebase.";
+  }
 });
-document.getElementById("logout-btn").addEventListener("click",()=>{
-  sessionOk=false;sessionStorage.removeItem(SESSION_KEY);
-  document.getElementById("admin-view").hidden=true;
-  document.getElementById("login-view").style.display="grid";
+
+document.getElementById("logout-btn").addEventListener("click",async ()=>{
+  await auth.signOut();
+});
+
+// بوابة العرض حسب حالة المصادقة
+auth.onAuthStateChanged(async (user) => {
+  if(user && user.email === ADMIN_EMAIL){
+    await store.initData();     // تحميل الإعدادات والاستراحات من Firestore
+    cachedBookings = await store.getBookings();
+    if(_bookingsUnsub){ _bookingsUnsub(); _bookingsUnsub = null; }
+    // اشتراك لحظي على الحجوزات لتحديث اللوحة عند وصول حجوزات جديدة
+    if(window.db){
+      _bookingsUnsub = db.collection("bookings").onSnapshot(async () => {
+        cachedBookings = await store.getBookings();
+        const active = document.querySelector(".section.active");
+        if(active) renderAll();
+      }, err => console.warn("bookings snapshot error", err));
+    }
+    showAdmin();
+  } else {
+    if(_bookingsUnsub){ _bookingsUnsub(); _bookingsUnsub = null; }
+    document.getElementById("admin-view").hidden=true;
+    document.getElementById("login-view").style.display="grid";
+    document.getElementById("admin-pass").value="";
+  }
 });
 
 function showAdmin(){
@@ -90,10 +103,9 @@ document.querySelectorAll(".nav-item").forEach(item=>{
 
 /* ===== Dashboard ===== */
 function renderDashboard(){
-  const bookings=store.getBookings();
+  const bookings=cachedBookings;
   const units=store.getUnits();
   const totalRev=bookings.reduce((s,b)=>s+(+b.price||0),0);
-  // الإشغال: تواريخ محجوزة ضمن الثلاثين يوماً القادمة (مع سقف 100%)
   const now=new Date();now.setHours(0,0,0,0);
   const in30=new Date(now);in30.setDate(in30.getDate()+30);
   const occCount = units.reduce((s,u)=>s+u.booked.filter(iso=>{const d=new Date(iso);return d>=now&&d<in30;}).length,0);
@@ -105,27 +117,26 @@ function renderDashboard(){
     <div class="stat-card"><div class="sc-top"><span class="sc-label">الإشغال (30 يوم)</span><span class="sc-icon"><i class="fa-solid fa-chart-line"></i></span></div><div class="sc-val">${occPct}%</div><div class="sc-trend">${units.length} استراحات</div></div>
     <div class="stat-card"><div class="sc-top"><span class="sc-label">استراحات نشطة</span><span class="sc-icon"><i class="fa-solid fa-house"></i></span></div><div class="sc-val">${units.length}</div></div>`;
 
-  // رسم بياني
   const counts = units.map(u=>({name:u.name, n:bookings.filter(b=>b.unitId===u.id).length}));
   const max = Math.max(1,...counts.map(c=>c.n));
   const chartCard=document.querySelector(".chart-card");
-  chartCard.querySelector(".chart-x")?.remove(); // تفادي تراكم محاور سابقة
+  chartCard.querySelector(".chart-x")?.remove();
   document.getElementById("dash-chart").innerHTML = counts.map(c=>`
     <div class="bar" style="height:${(c.n/max*100)}%"><em>${c.n}</em></div>`).join("");
   chartCard.insertAdjacentHTML("beforeend",
-    `<div class="chart-x">${counts.map(c=>`<span>${c.name.split(" ")[2]||c.name}</span>`).join("")}</div>`);
+    `<div class="chart-x">${counts.map(c=>`<span>${esc(c.name.split(" ")[2]||c.name)}</span>`).join("")}</div>`);
 
-  // أحدث الحجوزات
-  const recent=[...bookings].slice(-5).reverse();
+  const recent=bookings.slice(0,5);
   document.getElementById("dash-recent").innerHTML = recent.length?`
     <table class="tbl"><thead><tr><th>الاسم</th><th>الاستراحة</th><th>التاريخ</th><th>الجوال</th><th>الحالة</th></tr></thead><tbody>
-    ${recent.map(b=>`<tr><td>${esc(b.name)}</td><td>${esc(b.unitName)}</td><td>${b.date}</td><td>${esc(b.phone)}</td><td><span class="tag new">جديد</span></td></tr>`).join("")}
+    ${recent.map(b=>`<tr><td>${esc(b.name)}</td><td>${esc(b.unitName)}</td><td>${esc(b.date)}</td><td>${esc(b.phone)}</td><td><span class="tag new">جديد</span></td></tr>`).join("")}
     </tbody></table>`:`<div class="tbl-empty">لا توجد حجوزات بعد</div>`;
 }
 
 /* ===== تقويم الإدارة ===== */
 function renderCalTabs(){
   const units=store.getUnits();
+  if(!units.length) return;
   if(!calUnitId) calUnitId=units[0].id;
   document.getElementById("cal-unit-tabs").innerHTML=units.map(u=>`
     <button class="cal-tab ${u.id===calUnitId?'active':''}" data-id="${u.id}">${esc(u.name)}</button>`).join("");
@@ -134,6 +145,7 @@ function renderCalTabs(){
 function renderAdminCalendar(){
   const units=store.getUnits();
   const unit=units.find(u=>u.id===calUnitId)||units[0];
+  if(!unit) return;
   const y=calDate.getFullYear(), m=calDate.getMonth();
   document.getElementById("cal-month").textContent=`${AR_MONTHS[m]} ${y}`;
   const first=new Date(y,m,1).getDay();
@@ -149,7 +161,7 @@ function renderAdminCalendar(){
   html+=`</div>`;
   document.getElementById("admin-calendar").innerHTML=html;
   document.querySelectorAll(".admin-cal .day:not(.past):not(.empty)").forEach(el=>{
-    el.addEventListener("click",()=>{
+    el.addEventListener("click",async ()=>{
       const units=store.getUnits();const iso=el.dataset.iso;
       const unit=units.find(u=>u.id===calUnitId);
       const i=unit.booked.indexOf(iso);
@@ -204,7 +216,7 @@ function editUnit(id){
     </div></div>`;
   document.body.appendChild(wrap);
   wrap.querySelector("#e-cancel").addEventListener("click",()=>wrap.remove());
-  wrap.querySelector("#e-save").addEventListener("click",()=>{
+  wrap.querySelector("#e-save").addEventListener("click",async ()=>{
     u.name=wrap.querySelector("#e-name").value.trim()||u.name;
     u.tagline=wrap.querySelector("#e-tag").value.trim();
     u.price=+wrap.querySelector("#e-price").value||u.price;
@@ -219,35 +231,39 @@ function editUnit(id){
 
 /* ===== سجل الحجوزات ===== */
 function renderBookings(filter=""){
-  const bookings=store.getBookings().slice().reverse();
+  const bookings=cachedBookings.slice();
   const f=filter.trim().toLowerCase();
   const list=f?bookings.filter(b=>(b.name+b.phone+b.unitName).toLowerCase().includes(f)):bookings;
   document.getElementById("bookings-table").innerHTML=list.length?`
     <table class="tbl"><thead><tr><th>الاسم</th><th>الاستراحة</th><th>التاريخ</th><th>الجوال</th><th>السعر</th><th>تاريخ الطلب</th><th>إجراءات</th></tr></thead><tbody>
     ${list.map(b=>`<tr>
       <td>${esc(b.name)}${b.notes?`<br><small style="color:var(--a-muted)">${esc(b.notes)}</small>`:""}</td>
-      <td>${esc(b.unitName)}</td><td>${b.date}</td><td>${esc(b.phone)}</td><td>${b.price} ${esc(b.currency)}</td>
+      <td>${esc(b.unitName)}</td><td>${esc(b.date)}</td><td>${esc(b.phone)}</td><td>${esc(b.price)} ${esc(b.currency)}</td>
       <td>${new Date(b.createdAt).toLocaleDateString("ar")}</td>
       <td><div class="row-actions">
         <a class="icon-btn" href="https://wa.me/${b.phone.replace(/\D/g,'')}" target="_blank" rel="noopener" title="واتساب"><i class="fa-brands fa-whatsapp"></i></a>
         <button class="icon-btn del" data-del="${b.id}" title="حذف"><i class="fa-solid fa-trash"></i></button>
       </div></td></tr>`).join("")}
     </tbody></table>`:`<div class="tbl-empty">لا توجد حجوزات${f?" مطابقة":""}</div>`;
-  document.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",()=>{
-    const all=store.getBookings().filter(x=>x.id!==b.dataset.del);store.setBookings(all);renderAll();toast("تم حذف الحجز");
+  document.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",async ()=>{
+    const id = b.dataset.del;
+    try{
+      await store.deleteBooking(id);
+      cachedBookings = cachedBookings.filter(x=>x.id!==id);
+      renderAll();toast("تم حذف الحجز");
+    }catch(e){ toast("تعذّر حذف الحجز",true); }
   }));
 }
 document.getElementById("bk-search").addEventListener("input",e=>renderBookings(e.target.value));
 
 /* ===== تصدير CSV ===== */
-// تحييد خلايا الصيغ: إضافة فاصلة علوية للقيم التي تبدأ بـ = + - @ % أو تحتوي TAB/CR
 function csvSafe(v){
   let s = String(v==null?"":v);
   if(/^[=+\-@%]/.test(s.trim()) || /[\t\r]/.test(s)) s = "'" + s;
   return s;
 }
 document.getElementById("export-csv").addEventListener("click",()=>{
-  const bk=store.getBookings();
+  const bk=cachedBookings;
   if(!bk.length){toast("لا توجد حجوزات للتصدير",true);return;}
   const rows=[["ID","الاسم","الاستراحة","التاريخ","الجوال","ملاحظات","السعر","العملة","تاريخ الطلب"]];
   bk.forEach(b=>rows.push([b.id,b.name,b.unitName,b.date,b.phone,b.notes||"",b.price,b.currency,new Date(b.createdAt).toLocaleString()]));
@@ -293,18 +309,33 @@ document.getElementById("pass-form").addEventListener("submit",async e=>{
   const p2=document.getElementById("new-pass2").value;
   if(p1.length<4){toast("كلمة المرور قصيرة جداً",true);return;}
   if(p1!==p2){toast("كلمتا المرور غير متطابقتين",true);return;}
-  store.setPass(await store.sha256(p1));
-  document.getElementById("new-pass").value="";document.getElementById("new-pass2").value="";
-  toast("تم تغيير كلمة المرور");
+  const user = auth.currentUser;
+  if(!user){toast("سجّل الدخول أولاً",true);return;}
+  try{
+    await user.updatePassword(p1);
+    document.getElementById("new-pass").value="";document.getElementById("new-pass2").value="";
+    toast("تم تغيير كلمة المرور");
+  }catch(ex){
+    const code = ex && ex.code ? ex.code : "";
+    if(code==="auth/requires-recent-login") toast("سجّل الخروج ثم الدخول مجدداً قبل التغيير",true);
+    else toast("تعذّر تغيير كلمة المرور",true);
+  }
 });
-document.getElementById("reset-all").addEventListener("click",()=>{
+document.getElementById("reset-all").addEventListener("click",async ()=>{
   if(confirm("سيتم حذف كل البيانات وإعادتها للوضع الافتراضي. متابعة؟")){
-    store.resetAll();renderAll();toast("تمت إعادة التعيين");
+    try{
+      await store.resetAll();
+      cachedBookings = [];
+      renderAll();toast("تمت إعادة التعيين");
+    }catch(e){
+      console.error("resetAll failed", e);
+      toast("تعذّرت إعادة التعيين، تحقّق من الصلاحيات",true);
+    }
   }
 });
 
 /* ===== تشغيل ===== */
-function renderAll(){
+async function renderAll(){
   renderDashboard();
   renderCalTabs();
   renderAdminCalendar();
@@ -312,15 +343,3 @@ function renderAll(){
   renderBookings();
   renderSettings();
 }
-// استئناف الجلسة إن كانت قائمة وصحيحة
-verifySession().then(ok => { if(ok){ sessionOk = true; showAdmin(); } });
-
-// Force migration from Marbella to Marbella for existing local storage
-(function(){
-  const s = store.getSettings();
-  if(s.brandName === "منتجعات ماربيلا" || s.brandName === "منتجعات ماربيلا") {
-      s.brandName = "منتجعات ماربيلا";
-      s.brandNameEn = "Marbella Resorts";
-      store.setSettings(s);
-  }
-})();

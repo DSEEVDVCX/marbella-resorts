@@ -11,28 +11,43 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-  <link rel="stylesheet" href="css/style.css" />
-  <script>(function(){try{var t=localStorage.getItem('sadeem_theme');if(t==='dark')document.documentElement.classList.add('theme-dark');}catch(e){}})();</script>
+  <link rel="stylesheet" href="css/style.css?v=2" />
+  <script src="js/theme-init.js?v=2"></script>
 </head>
 <body id="top">
+  <a class="skip-link" href="#top">تخطّى إلى المحتوى</a>
+
+  <div class="topbar">
+    <div class="container topbar-inner">
+      <span class="topbar-area"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> <span id="areaName"></span></span>
+      <div class="social">
+        <a id="link-instagram" href="#" target="_blank" rel="noopener" aria-label="انستغرام"><i class="fa-brands fa-instagram" aria-hidden="true"></i></a>
+        <a id="link-tiktok" href="#" target="_blank" rel="noopener" aria-label="تيك توك"><i class="fa-brands fa-tiktok" aria-hidden="true"></i></a>
+        <a id="link-whatsapp" href="#" target="_blank" rel="noopener" aria-label="واتساب"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>
+      </div>
+    </div>
+  </div>
 
   <!-- ===== شريط التنقل ===== -->
   <header class="navbar" id="navbar">
     <div class="container navbar-inner">
       <a class="brand" href="index.html" aria-label="منتجعات ماربيلا - الرئيسية">
-        <img src="assets/images/logo.png" alt="شعار منتجعات ماربيلا" class="logo" width="52" height="52" />
+        <img src="assets/images/logo.png" alt="شعار منتجعات ماربيلا" id="main-logo" class="logo" width="52" height="52" />
         <span class="brand-text">
           <h1 id="brandName">منتجعات ماربيلا</h1>
           <small>استراحات ومجالس للإيجار اليومي</small>
         </span>
       </a>
       <nav class="nav-links" id="nav-links" aria-label="التنقل الرئيسي">
-        <a href="index.html#units-section">الاستراحات</a>
-        <a href="about.html" class="active">من نحن</a>
-        <a href="faq.html">الأسئلة الشائعة</a>
-        <a href="cancellation-policy.html">سياسة الإلغاء</a>
+        <a href="about.html" class="active" data-tr="nav-about">من نحن</a>
+        <a href="index.html#units-section" data-tr="nav-units">الاستراحات</a>
+        <a href="faq.html" data-tr="nav-faq">الأسئلة الشائعة</a>
+        <a href="cancellation-policy.html" data-tr="nav-cancellation">سياسة الإلغاء</a>
+        <a href="index.html#map-section" data-tr="nav-map">الموقع</a>
       </nav>
-      <a id="cta-whatsapp" class="btn btn-wa" href="#" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> تواصل معنا</a>
+      <a id="cta-whatsapp" class="btn btn-wa" href="#" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> <span data-tr="btn-book">احجز الآن</span></a>
+      <button id="lang-toggle" class="lang-toggle" aria-label="تبديل اللغة" data-tr="lbl-lang">English</button>
+      <button id="theme-toggle" class="theme-toggle" aria-label="تبديل الوضع الداكن" title="الوضع الداكن"><i class="fa-solid fa-moon"></i></button>
       <button class="nav-toggle" id="nav-toggle" aria-label="القائمة" aria-expanded="false"><i class="fa-solid fa-bars" aria-hidden="true"></i></button>
     </div>
   </header>
@@ -94,34 +109,9 @@
     <p class="copyright">© <span id="year"></span> منتجعات ماربيلا — جميع الحقوق محفوظة</p>
   </footer>
 
-  <script src="js/shared.js"></script>
-  <script src="js/data.js"></script>
-  <script>
-    // تفعيل الروابط
-    document.addEventListener("DOMContentLoaded", () => {
-      if(window.MarbellaStore){
-        const s = window.MarbellaStore.settings;
-        document.getElementById("brandName").textContent = s.brandName;
-        document.getElementById("footerBrand").textContent = s.brandName;
-        document.getElementById("footerPhone").textContent = s.phoneDisplay;
-        document.getElementById("year").textContent = new Date().getFullYear();
-        
-        const waLink = `https://wa.me/${s.whatsapp}`;
-        document.getElementById("cta-whatsapp").href = waLink;
-        document.getElementById("footer-whatsapp").href = waLink;
-        document.getElementById("footer-instagram").href = s.instagram;
-        document.getElementById("footer-tiktok").href = s.tiktok;
-      }
-      
-      const navToggle = document.getElementById("nav-toggle");
-      const navLinks  = document.getElementById("nav-links");
-      if(navToggle && navLinks){
-        navToggle.addEventListener("click",()=>{
-          const open = navLinks.classList.toggle("open");
-          navToggle.setAttribute("aria-expanded", open ? "true" : "false");
-        });
-      }
-    });
-  </script>
+    <!-- Firebase (مُركَّز عبر firebase-loader.js) -->
+  <script src="js/firebase-loader.js?v=2"></script>
+  <script src="js/shared.js?v=2"></script>
+  <script src="js/about.js?v=2"></script>
 </body>
 </html>
