@@ -2,7 +2,7 @@
    Service Worker — منتجعات ماربيلا
    Cache-first للصفحات والأصول، أوفلاين مع رسالة تحديث
    ============================================================ */
-const CACHE = "marbella-v3";
+const CACHE = "marbella-v4";
 const ASSETS = [
   "./",
   "./index.html",

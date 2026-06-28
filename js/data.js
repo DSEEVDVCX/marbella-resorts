@@ -167,8 +167,7 @@ const AR_DOW = ["أحد","إثنين","ثلاثاء","أربعاء","خميس","
 function pad(n){return String(n).padStart(2,"0");}
 function toISO(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
 
-const DEFAULT_SETTINGS = Object.assign({}, SETTINGS);
-const DEFAULT_UNITS    = JSON.parse(JSON.stringify(UNITS));
+
 
 if(!window.MarbellaStore){
   window.MarbellaStore = {
