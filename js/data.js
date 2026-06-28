@@ -23,51 +23,49 @@ const SETTINGS = {
 const UNITS = [
   {
     id: "estrha1",
-    name: "استراحة سديم الكبرى",
-    tagline: "مساحة واسعة للعائلات الكبيرة",
-    price: 1200,
+    name: "استراحة سديم 1 (عائلات)",
+    tagline: "المكان المثالي لجمعتك العائلية القادمة",
+    price: 1500,
     currency: "درهم",
-    capacity: "تسع حتى 20 شخص",
+    capacity: "تسع حتى 30 شخص",
     beds: "4 غرف نوم",
-    baths: "3 دورات مياه",
-    features: ["مسبح خاص", "مطبخ مجهز", "شوية خارجية", "جلسات خارجية", "واي فاي", "موقف سيارات"],
-    images: ["assets/images/estrha1-1.jpg", "assets/images/estrha1-2.jpg"],
-    // إحداثيات الموقع على الخريطة (lat,lng)
+    baths: "4 دورات مياه",
+    features: ["مسبح خاص بعمق تدريجي", "صالة أرضية بشاشة كبيرة", "3 جلسات خارجية", "ألعاب أطفال", "محطة شواء", "مطبخ خارجي"],
+    images: ["assets/images/estrha1/photo_1.jpeg", "assets/images/estrha1/photo_10.jpeg", "assets/images/estrha1/photo_11.jpeg", "assets/images/estrha1/photo_12.jpeg", "assets/images/estrha1/photo_13.jpeg", "assets/images/estrha1/photo_14.jpeg", "assets/images/estrha1/photo_15.jpeg", "assets/images/estrha1/photo_16.jpeg", "assets/images/estrha1/photo_17.jpeg", "assets/images/estrha1/photo_18.jpeg", "assets/images/estrha1/photo_2.jpeg", "assets/images/estrha1/photo_3.jpeg", "assets/images/estrha1/photo_4.jpeg", "assets/images/estrha1/photo_5.jpeg", "assets/images/estrha1/photo_6.jpeg"],
     lat: 23.9785,
     lng: 55.5288,
-    // التواريخ المحجوزة (صيغة YYYY-MM-DD)
-    booked: [],
+    booked: []
   },
   {
     id: "estrha2",
-    name: "استراحة سديم ديلوكس",
-    tagline: "تصميم فاخر وإطلالة هادئة",
-    price: 1500,
+    name: "استراحة سديم 2 (عزاب/عائلات)",
+    tagline: "هدوء وفخامة مع خصوصية تامة",
+    price: 1200,
     currency: "درهم",
-    capacity: "تسع حتى 15 شخص",
-    beds: "3 غرف نوم",
-    baths: "3 دورات مياه",
-    features: ["مسبح خاص", "صالة ألعاب", "مطبخ مجهز", "شوية خارجية", "واي فاي", "موقف سيارات"],
-    images: ["assets/images/estrha2-1.jpg", "assets/images/estrha2-2.jpg"],
+    capacity: "تسع حتى 30 شخص",
+    beds: "2 غرف نوم",
+    baths: "2 دورات مياه",
+    features: ["مسبح خاص 150سم", "صالة كبيرة", "جلستين خارجية", "محطة شواء", "مجلس رجال منعزل", "ألعاب أطفال"],
+    images: ["assets/images/estrha2/photo_1.jpeg", "assets/images/estrha2/photo_10.jpeg", "assets/images/estrha2/photo_11.jpeg", "assets/images/estrha2/photo_12.jpeg", "assets/images/estrha2/photo_13.jpeg", "assets/images/estrha2/photo_14.jpeg", "assets/images/estrha2/photo_15.jpeg", "assets/images/estrha2/photo_2.jpeg", "assets/images/estrha2/photo_3.jpeg", "assets/images/estrha2/photo_4.jpeg", "assets/images/estrha2/photo_5.jpeg", "assets/images/estrha2/photo_6.jpeg", "assets/images/estrha2/photo_7.jpeg", "assets/images/estrha2/photo_8.jpeg", "assets/images/estrha2/photo_9.jpeg"],
     lat: 23.9790,
     lng: 55.5295,
-    booked: [],
+    booked: []
   },
   {
     id: "estrha3",
-    name: "استراحة سديم بريميوم",
-    tagline: "خصوصية تامة وتجربة راقية",
-    price: 1800,
+    name: "استراحة سديم 3",
+    tagline: "تجربة راقية بأسعار تنافسية",
+    price: 1200,
     currency: "درهم",
     capacity: "تسع حتى 25 شخص",
-    beds: "5 غرف نوم",
-    baths: "4 دورات مياه",
-    features: ["مسبح خاص مدفأ", "مطبخ مجهز", "شوية خارجية", "جلسات خارجية", "واي فاي", "موقف سيارات", "غرفة خادمة"],
-    images: ["assets/images/estrha3-1.jpg", "assets/images/estrha3-2.jpg"],
+    beds: "2 غرف نوم",
+    baths: "2 دورات مياه",
+    features: ["مسبح خاص 150سم", "صالة كبيرة", "جلستين خارجية", "محطة شواء", "مجلس رجال منعزل", "ألعاب أطفال"],
+    images: ["assets/images/estrha1/photo_1.jpeg", "assets/images/estrha2/photo_2.jpeg"],
     lat: 23.9780,
     lng: 55.5280,
-    booked: [],
-  },
+    booked: []
+  }
 ];
 
 /* ============================================================
@@ -120,7 +118,7 @@ const KEYS = {
   favorites: "sadeem_favorites",
   reviews:   "sadeem_reviews"
 };
-const SCHEMA_VERSION = 2; // bump عند تغيير بنية البيانات لإعادة زرع الافتراضي
+const SCHEMA_VERSION = 3; // bump عند تغيير بنية البيانات لإعادة زرع الافتراضي
 
 const DEFAULT_SETTINGS = Object.assign({}, SETTINGS);
 const DEFAULT_UNITS    = JSON.parse(JSON.stringify(UNITS));
