@@ -1,10 +1,108 @@
 /* ============================================================
    منتجعات سديم — مشترك بين كل الصفحات
-   ربط الإعدادات + شريط التنقل + قائمة الجوال + كشف الظهور + Lightbox
-   ملاحظة: يجب تحميل js/data.js قبله
+   ربط الإعدادات + شريط التنقل + قائمة الجوال + كشف الظهور + Lightbox + تبديل اللغة
    ============================================================ */
 
-/* ===== ربط الإعدادات العامة بالعناصر (مع حماية لغياب بعضها) ===== */
+const DICT = {
+  ar: {
+    "nav-about": "من نحن",
+    "nav-units": "الاستراحات",
+    "nav-faq": "الأسئلة الشائعة",
+    "nav-cancellation": "سياسة الإلغاء",
+    "nav-map": "الموقع",
+    "hero-title": "مجالسٌ تُحيى <em>تحت سماء الصحراء</em>",
+    "hero-sub": "ثلاث استراحات خاصة بمسابح ومجالس راقية في قلب الظاهرة — صُممت لخصوصيتك التامة وللّحظات جمعك العائلية بعد الغروب.",
+    "btn-book": "احجز الآن",
+    "btn-choose": "اختر استراحتك",
+    "btn-wa": "تواصل عبر واتساب",
+    "btn-pdf": "تحميل الكتيب (PDF)",
+    "section-families": "للعائلات",
+    "section-singles": "للعزاب",
+    "unit-capacity": "السعة:",
+    "unit-night": "/الليلة",
+    "unit-details": "التفاصيل",
+    "unit-location": "الموقع",
+    "rooms": "غرف نوم",
+    "baths": "دورات مياه",
+    "pools": "مسبح",
+    "fav-title": "مفضّلتي",
+    "footer-rights": "جميع الحقوق محفوظة",
+    "lbl-lang": "English",
+    "search-placeholder": "ابحث بالاسم...",
+    "sort-default": "الترتيب الافتراضي",
+    "sort-price-asc": "السعر: الأقل أولًا",
+    "sort-price-desc": "السعر: الأعلى أولًا",
+    "sort-capacity": "الأكثر سعة"
+  },
+  en: {
+    "nav-about": "About Us",
+    "nav-units": "Resorts",
+    "nav-faq": "FAQ",
+    "nav-cancellation": "Cancellation Policy",
+    "nav-map": "Location",
+    "hero-title": "Lounges alive <em>under the desert sky</em>",
+    "hero-sub": "Three private resorts with pools and elegant lounges in the heart of Al Dhahirah — designed for total privacy.",
+    "btn-book": "Book Now",
+    "btn-choose": "Choose Resort",
+    "btn-wa": "Contact via WhatsApp",
+    "btn-pdf": "Download Brochure (PDF)",
+    "section-families": "Families",
+    "section-singles": "Singles",
+    "unit-capacity": "Capacity:",
+    "unit-night": "/Night",
+    "unit-details": "Details",
+    "unit-location": "Location",
+    "rooms": "Rooms",
+    "baths": "Baths",
+    "pools": "Pool",
+    "fav-title": "Favorites",
+    "footer-rights": "All rights reserved",
+    "lbl-lang": "عربي",
+    "search-placeholder": "Search by name...",
+    "sort-default": "Default Sort",
+    "sort-price-asc": "Price: Low to High",
+    "sort-price-desc": "Price: High to Low",
+    "sort-capacity": "Highest Capacity"
+  }
+};
+
+let currentLang = localStorage.getItem("sadeem_lang") || "ar";
+
+function tr(key){
+  return DICT[currentLang][key] || key;
+}
+
+function updateLanguage(lang) {
+  currentLang = lang;
+  localStorage.setItem("sadeem_lang", lang);
+  
+  const html = document.documentElement;
+  html.lang = lang;
+  html.dir = lang === "ar" ? "rtl" : "ltr";
+  
+  // Update static text elements
+  document.querySelectorAll("[data-tr]").forEach(el => {
+    const key = el.getAttribute("data-tr");
+    if(DICT[lang][key]){
+      if (el.tagName === "INPUT" && el.type === "search") {
+        el.placeholder = DICT[lang][key];
+      } else {
+        el.innerHTML = DICT[lang][key];
+      }
+    }
+  });
+
+  // Update dynamic parts like settings
+  const $ = id => document.getElementById(id);
+  const set = (id, val) => { const el = $(id); if(el) el.textContent = val; };
+  set("brandName", lang === "ar" ? SETTINGS.brandName : SETTINGS.brandNameEn);
+  set("footerBrand", lang === "ar" ? SETTINGS.brandName : SETTINGS.brandNameEn);
+  
+  // Trigger custom event so other scripts can re-render if needed
+  window.dispatchEvent(new Event("languageChanged"));
+}
+
+/* ===== ربط الإعدادات العامة بالعناصر ===== */
 function initShell(){
   const $ = id => document.getElementById(id);
   const wa = `https://wa.me/${SETTINGS.whatsapp}`;
@@ -14,8 +112,6 @@ function initShell(){
   set("areaName", SETTINGS.areaName);
   set("areaName2", SETTINGS.areaName);
   set("areaName3", SETTINGS.areaName);
-  set("brandName", SETTINGS.brandName);
-  set("footerBrand", SETTINGS.brandName);
   set("footerPhone", SETTINGS.phoneDisplay);
   set("year", new Date().getFullYear());
 
@@ -24,21 +120,18 @@ function initShell(){
   href("cta-whatsapp", wa);
   href("float-whatsapp", wa);
   href("hero-wa", wa);
-  href("cta-wa", wa);
+  if($("cta-wa")) href("cta-wa", wa);
   href("link-instagram", SETTINGS.instagram);
   href("footer-instagram", SETTINGS.instagram);
   href("link-tiktok", SETTINGS.tiktok);
   href("footer-tiktok", SETTINGS.tiktok);
 
-  // خريطة المنطقة العامة (إن وُجد العنصر)
   const mapEl = $("area-map");
   if(mapEl && UNITS[0]) mapEl.src = `https://www.google.com/maps?q=${UNITS[0].lat},${UNITS[0].lng}&z=14&output=embed`;
 
-  // شريط التنقل: تأثير التمرير
   const nav = $("navbar");
   if(nav) window.addEventListener("scroll", () => nav.classList.toggle("scrolled", window.scrollY > 20), {passive:true});
 
-  // قائمة الجوال
   const toggle = $("nav-toggle");
   const links = $("nav-links");
   if(toggle && links){
@@ -52,7 +145,6 @@ function initShell(){
     }));
   }
 
-  // كشف الظهور التدريجي (مع احترام تقليل الحركة)
   const reduce = matchMedia("(prefers-reduced-motion:reduce)").matches;
   const reveals = document.querySelectorAll(".reveal");
   if(reduce || !("IntersectionObserver" in window)){
@@ -64,10 +156,8 @@ function initShell(){
     reveals.forEach(e => io.observe(e));
   }
 
-  // الوضع الداكن: تطبيق محفوظ + زر التبديل
   const tToggle = $("theme-toggle");
   if(tToggle){
-    // طبّق الأيقونة المناسبة حسب الحالة الحالية
     const isDark = document.documentElement.classList.contains("theme-dark");
     tToggle.querySelector("i").className = isDark ? "fa-solid fa-sun" : "fa-solid fa-moon";
     tToggle.addEventListener("click",()=>{
@@ -78,9 +168,20 @@ function initShell(){
       tToggle.querySelector("i").className = dark ? "fa-solid fa-sun" : "fa-solid fa-moon";
     });
   }
+
+  const lToggle = $("lang-toggle");
+  if(lToggle){
+    lToggle.addEventListener("click",()=>{
+      const nextLang = currentLang === "ar" ? "en" : "ar";
+      updateLanguage(nextLang);
+    });
+  }
+
+  // Initial lang setup
+  updateLanguage(currentLang);
 }
 
-/* ===== Lightbox مشترك للمعرض ===== */
+/* ===== Lightbox ===== */
 let _lbState = {imgs:[], idx:0};
 function openLightbox(images, startIdx){
   _lbState.imgs = images; _lbState.idx = startIdx || 0;

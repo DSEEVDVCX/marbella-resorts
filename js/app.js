@@ -8,7 +8,7 @@ let calDate = new Date();  // الشهر المعروض في التقويم
 let selectedDate = null;   // التاريخ المختار من المستخدم
 
 /* ===== حالة الفلاتر ===== */
-let unitFilters = { q:"", sort:"default", feats:[] };
+let unitFilters = { q:"", sort:"default", feats:[], section:"all" };
 
 /* استخراج رقم السعة من نص مثل "تسع حتى 20 شخص" */
 function parseCapacity(text){
@@ -19,9 +19,16 @@ function parseCapacity(text){
 /* تطبيق الفلاتر والفرز على قائمة الوحدات */
 function getFilteredUnits(){
   let list = UNITS.slice();
+  
+  // فلترة القسم
+  if(unitFilters.section !== "all"){
+    list = list.filter(u => u.section === unitFilters.section);
+  }
+  
   // بحث نصي
   const q = unitFilters.q.trim().toLowerCase();
-  if(q) list = list.filter(u=>(u.name+" "+u.tagline+" "+(u.features||[]).join(" ")).toLowerCase().includes(q));
+  if(q) list = list.filter(u=>(u.name+" "+u.nameEn+" "+u.tagline+" "+u.taglineEn+" "+(u.features||[]).join(" ")).toLowerCase().includes(q));
+  
   // فلترة بالمميزات المختارة
   if(unitFilters.feats.length){
     list = list.filter(u=>unitFilters.feats.every(f=>(u.features||[]).includes(f)));
@@ -39,7 +46,8 @@ function getFilteredUnits(){
 function buildFilterChips(){
   const wrap = document.getElementById("filter-feats");
   if(!wrap) return;
-  const feats = [...new Set(UNITS.flatMap(u=>u.features||[]))];
+  const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+  const feats = [...new Set(UNITS.flatMap(u => isEn ? (u.featuresEn || []) : (u.features || [])))];
   wrap.innerHTML = feats.map(f=>`<button class="fb-chip" data-feat="${f}" aria-pressed="false">${f}</button>`).join("");
   wrap.querySelectorAll("[data-feat]").forEach(chip=>{
     chip.addEventListener("click",()=>{
@@ -57,13 +65,35 @@ function buildFilterChips(){
 function isSameDay(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();}
 
 /* ===== ربط الإعدادات بالواجهة (مشترك عبر shared.js#initShell) ===== */
-function initSettings(){ initShell(); }
+function initSettings(){
+  initShell();
+  
+  // Section switcher
+  document.querySelectorAll(".sec-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".sec-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      unitFilters.section = btn.dataset.section;
+      renderUnits();
+    });
+  });
+  
+  // Re-render on language change
+  window.addEventListener("languageChanged", () => {
+    renderUnits();
+    // Rebuild feature chips if needed
+    buildFilterChips();
+  });
+}
 
 function clearFilters(){
-  unitFilters = { q:"", sort:"default", feats:[] };
+  unitFilters = { q:"", sort:"default", feats:[], section:"all" };
   const s = document.getElementById("filter-search"); if(s) s.value="";
   const so = document.getElementById("filter-sort"); if(so) so.value="default";
   document.querySelectorAll(".fb-chip").forEach(c=>c.setAttribute("aria-pressed","false"));
+  document.querySelectorAll(".sec-btn").forEach(b=>b.classList.remove("active"));
+  const defSec = document.querySelector(".sec-btn[data-section='all']");
+  if(defSec) defSec.classList.add("active");
   renderUnits();
 }
 
@@ -79,34 +109,54 @@ function renderUnits(filterFn){
     return;
   }
   grid.innerHTML = list.map(u => {
-    const features = u.features.map(f=>`<span class="chip"><i class="fa-solid fa-check"></i>${f}</span>`).join("");
+    const isEn = currentLang === "en";
+    const name = isEn ? (u.nameEn || u.name) : u.name;
+    const tagline = isEn ? (u.taglineEn || u.tagline) : u.tagline;
+    const capacity = isEn ? (u.capacityEn || u.capacity) : u.capacity;
+    const currency = isEn ? (u.currencyEn || u.currency) : u.currency;
+    const featsList = isEn ? (u.featuresEn || u.features) : u.features;
+    
+    const features = featsList.map(f=>`<span class="chip"><i class="fa-solid fa-check"></i>${f}</span>`).join("");
     const dots = u.images.map((_,i)=>`<span${i===0?' class="active"':''}></span>`).join("");
     const fav = store && store.isFavorite(u.id);
+    
     return `
     <article class="unit-card">
       <div class="unit-gallery" id="gal-${u.id}">
-        <img src="${u.images[0]}" alt="صورة ${u.name}" width="400" height="250" loading="lazy" />
-        <span class="unit-price">${u.price} <small>${u.currency}/الليلة</small></span>
-        <button class="fav-btn ${fav?'on':''}" data-fav="${u.id}" aria-label="${fav?'إزالة من المفضّلة':'إضافة للمفضّلة'}" aria-pressed="${fav?'true':'false'}"><i class="fa-${fav?'solid':'regular'} fa-heart"></i></button>
+        <img src="${u.images[0] || 'assets/images/placeholder.jpg'}" alt="${name}" width="400" height="250" loading="lazy" />
+        <span class="unit-price">${u.price} <small>${currency} ${tr("unit-night")}</small></span>
+        
+        <div class="likes-badge">
+          <button class="fav-btn ${fav?'on':''}" data-fav="${u.id}" aria-label="${fav?'Remove favorite':'Add favorite'}" aria-pressed="${fav?'true':'false'}">
+            <i class="fa-${fav?'solid':'regular'} fa-heart"></i>
+          </button>
+          <span class="likes-count">${u.likes || 0}</span>
+        </div>
+
         <div class="gallery-nav">
-          <button class="gal-prev" data-unit="${u.id}" aria-label="السابق"><i class="fa-solid fa-chevron-right"></i></button>
-          <button class="gal-next" data-unit="${u.id}" aria-label="التالي"><i class="fa-solid fa-chevron-left"></i></button>
+          <button class="gal-prev" data-unit="${u.id}" aria-label="السابق"><i class="fa-solid fa-chevron-${isEn?'left':'right'}"></i></button>
+          <button class="gal-next" data-unit="${u.id}" aria-label="التالي"><i class="fa-solid fa-chevron-${isEn?'right':'left'}"></i></button>
         </div>
         <div class="gallery-dots">${dots}</div>
       </div>
       <div class="unit-body">
-        <h3>${u.name}</h3>
-        <p class="unit-tag">${u.tagline}</p>
-        <div class="unit-features">${features}</div>
-        <div class="unit-meta">
-          <span><i class="fa-solid fa-users"></i> ${u.capacity}</span>
-          <span><i class="fa-solid fa-bed"></i> ${u.beds}</span>
-          <span><i class="fa-solid fa-bath"></i> ${u.baths}</span>
+        <h3>${name}</h3>
+        <p class="unit-tag">${tagline}</p>
+        
+        <div class="numeric-amenities">
+          <span class="amenity-badge"><i class="fa-solid fa-users"></i> ${capacity}</span>
+          <span class="amenity-badge"><i class="fa-solid fa-bed"></i> ${u.roomsNum || 0} ${tr("rooms")}</span>
+          <span class="amenity-badge"><i class="fa-solid fa-bath"></i> ${u.bathsNum || 0} ${tr("baths")}</span>
+          <span class="amenity-badge"><i class="fa-solid fa-water-ladder"></i> ${u.poolsNum || 1} ${tr("pools")}</span>
         </div>
+
+        <div class="unit-features">${features}</div>
+        
         <div class="unit-actions">
-          <a class="btn-outline" href="unit-details.html?id=${u.id}"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> التفاصيل</a>
-          <a class="btn-outline" href="https://www.google.com/maps?q=${u.lat},${u.lng}&z=15" target="_blank" rel="noopener"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> الموقع</a>
-          <button class="btn btn-wa btn-book" data-book="${u.id}"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> احجز</button>
+          <a class="btn-outline" href="unit-details.html?id=${u.id}"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> ${tr("unit-details")}</a>
+          <a class="btn-outline" href="https://www.google.com/maps?q=${u.lat},${u.lng}&z=15" target="_blank" rel="noopener"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> ${tr("unit-location")}</a>
+          <a class="btn-outline pdf-btn" href="${u.pdfLink || '#'}" target="_blank" rel="noopener"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> ${tr("btn-pdf")}</a>
+          <button class="btn btn-wa btn-book" data-book="${u.id}" style="grid-column: 1/-1;"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> ${tr("btn-book")}</button>
         </div>
       </div>
     </article>`;

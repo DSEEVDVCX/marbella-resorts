@@ -561,3 +561,129 @@ section[id],main[id]{scroll-margin-top:90px}
   .detail-side{position:static;flex-direction:row;flex-wrap:wrap}
   .detail-side>*{flex:1;min-width:260px}
 }
+
+/* ===== New Features Styling ===== */
+
+/* Language Toggle */
+.lang-toggle {
+  background: none;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--trans-fast);
+  margin: 0 0.5rem;
+}
+.lang-toggle:hover {
+  background: var(--accent);
+  color: var(--surface);
+}
+
+/* Section Switcher */
+.section-switcher {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.sec-btn {
+  background: var(--surface-hover);
+  color: var(--text);
+  border: none;
+  padding: 0.6rem 1.5rem;
+  border-radius: 2rem;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--trans-fast);
+}
+.sec-btn.active, .sec-btn:hover {
+  background: var(--accent);
+  color: var(--surface);
+}
+
+/* Numeric Amenities Badges */
+.numeric-amenities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.amenity-badge {
+  background: rgba(212, 175, 55, 0.1);
+  color: var(--accent);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Likes Badge */
+.likes-badge {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  border-radius: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.6rem 0.2rem 0.2rem;
+  z-index: 2;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.likes-badge .fav-btn {
+  position: static;
+  background: transparent;
+  width: auto;
+  height: auto;
+  padding: 0;
+  box-shadow: none;
+  font-size: 1rem;
+}
+.likes-count {
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+html[dir="ltr"] .likes-badge {
+  left: auto;
+  right: 1rem;
+  padding: 0.2rem 0.2rem 0.2rem 0.6rem;
+}
+
+/* PDF Button */
+.pdf-btn {
+  color: #d32f2f;
+  border-color: rgba(211, 47, 47, 0.3);
+}
+.pdf-btn:hover {
+  background: rgba(211, 47, 47, 0.1);
+}
+.theme-dark .pdf-btn {
+  color: #ff5252;
+}
+
+/* Hide old unit-meta since we replaced it with numeric-amenities */
+.unit-meta {
+  display: none !important;
+}
+
+/* Fix RTL/LTR alignments */
+html[dir="ltr"] .navbar-inner .nav-links {
+  margin-left: auto;
+  margin-right: 0;
+}
+html[dir="rtl"] .navbar-inner .nav-links {
+  margin-right: auto;
+  margin-left: 0;
+}
