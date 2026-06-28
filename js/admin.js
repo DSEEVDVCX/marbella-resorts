@@ -39,6 +39,7 @@ async function verifySession(){
 }
 let sessionOk = false;
 
+document.addEventListener("DOMContentLoaded", async () => { await store.initFirebaseData(); });
 document.getElementById("login-form").addEventListener("submit",async e=>{
   e.preventDefault();
   const pass=document.getElementById("admin-pass").value;
@@ -154,7 +155,7 @@ function renderAdminCalendar(){
       const i=unit.booked.indexOf(iso);
       if(i>=0){unit.booked.splice(i,1);toast("تم إلغاء تحديد اليوم كمحجوز");}
       else{unit.booked.push(iso);toast("تم تحديد اليوم كمحجوز");}
-      store.setUnits(units);renderAdminCalendar();
+      await store.setUnits(units);renderAdminCalendar();
     });
   });
 }
@@ -212,7 +213,7 @@ function editUnit(id){
     u.beds=wrap.querySelector("#e-beds").value.trim();
     u.baths=wrap.querySelector("#e-baths").value.trim();
     u.features=wrap.querySelector("#e-feat").value.split(/[،,]/).map(s=>s.trim()).filter(Boolean);
-    store.setUnits(units);wrap.remove();renderAll();toast("تم حفظ التعديلات");
+    await store.setUnits(units);wrap.remove();renderAll();toast("تم حفظ التعديلات");
   });
 }
 
@@ -271,7 +272,7 @@ function renderSettings(){
   if(document.getElementById("s-bank")) document.getElementById("s-bank").value=s.bankAccount||"";
   if(document.getElementById("s-logo")) document.getElementById("s-logo").value=s.logoPath||"";
 }
-document.getElementById("settings-form").addEventListener("submit",e=>{
+document.getElementById("settings-form").addEventListener("submit",async e=>{
   e.preventDefault();
   const s=store.getSettings();
   s.brandName=document.getElementById("s-brand").value.trim();
@@ -284,7 +285,7 @@ document.getElementById("settings-form").addEventListener("submit",e=>{
   if(document.getElementById("s-email")) s.email=document.getElementById("s-email").value.trim();
   if(document.getElementById("s-bank")) s.bankAccount=document.getElementById("s-bank").value.trim();
   if(document.getElementById("s-logo")) s.logoPath=document.getElementById("s-logo").value.trim();
-  store.setSettings(s);toast("تم حفظ الإعدادات");
+  await store.setSettings(s);toast("تم حفظ الإعدادات");
 });
 document.getElementById("pass-form").addEventListener("submit",async e=>{
   e.preventDefault();

@@ -160,99 +160,132 @@ const DEFAULT_UNITS    = JSON.parse(JSON.stringify(UNITS));
 // SHA-256 الفعلي لـ "admin123" — يُغيَّر من داخل لوحة التحكم
 const DEFAULT_PASS_HASH = "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9";
 
-function loadJSON(key, fallback){
-  try {
-    const raw = localStorage.getItem(key);
-    if(!raw) return fallback;
-    return JSON.parse(raw);
-  } catch(e){ return fallback; }
-}
-function saveJSON(key, value){
-  try { localStorage.setItem(key, JSON.stringify(value)); }
-  catch(e){ /* قد يكون التخزين ممتلئاً */ }
-}
 
-// ترحيل/إعادة زرع: عند تغيّر نسخة المخطط يُعاد زرع الافتراضي لتفادي البيانات العتيقة
-const storedSchema = parseInt(localStorage.getItem(KEYS.schema),10);
-if(!storedSchema || storedSchema < SCHEMA_VERSION){
-  saveJSON(KEYS.settings, DEFAULT_SETTINGS);
-  saveJSON(KEYS.units, DEFAULT_UNITS);
-  if(!localStorage.getItem(KEYS.bookings)) saveJSON(KEYS.bookings, []);
-  localStorage.setItem(KEYS.pass, DEFAULT_PASS_HASH);
-  localStorage.setItem(KEYS.schema, String(SCHEMA_VERSION));
-}
-// تعافٍ ذاتي: إذا كان الهاش المخزّن هو الهاش القديم الخاطئ، استبدله بالصحيح
-const LEGACY_WRONG_HASH = "240be518fabd2724ddb6f04eeb1c68a6b9a4d4b4b5d2b5d2b5d2b5d2b5d2b5d2";
-if(localStorage.getItem(KEYS.pass) === LEGACY_WRONG_HASH){
-  localStorage.setItem(KEYS.pass, DEFAULT_PASS_HASH);
-}
-
-// قراءة البيانات الفعلية من التخزين (تُستبدل الثوابت الأصلية)
-Object.assign(SETTINGS, loadJSON(KEYS.settings, DEFAULT_SETTINGS));
-UNITS.splice(0, UNITS.length, ...loadJSON(KEYS.units, DEFAULT_UNITS).map(u=>Object.assign({},u)));
-
-/* أدوات تاريخ مشتركة (مصدر واحد لكلا السكربتين) */
+/* أدوات تاريخ مشتركة */
 const AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
 const AR_DOW = ["أحد","إثنين","ثلاثاء","أربعاء","خميس","جمعة","سبت"];
 function pad(n){return String(n).padStart(2,"0");}
 function toISO(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
 
-async function sha256(text){
-  const buf = new TextEncoder().encode(text);
-  const hash = await crypto.subtle.digest("SHA-256", buf);
-  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,"0")).join("");
-}
+const DEFAULT_SETTINGS = Object.assign({}, SETTINGS);
+const DEFAULT_UNITS    = JSON.parse(JSON.stringify(UNITS));
 
-// إتاحة الدوال للوحة التحكم
 if(!window.MarbellaStore){
   window.MarbellaStore = {
-    KEYS, AR_MONTHS, AR_DOW, pad, toISO, loadJSON, saveJSON, sha256,
-    getSettings(){ return loadJSON(KEYS.settings, DEFAULT_SETTINGS); },
-    setSettings(s){ saveJSON(KEYS.settings, s); Object.assign(SETTINGS, s); },
-    getUnits(){ return loadJSON(KEYS.units, DEFAULT_UNITS); },
-    setUnits(arr){ saveJSON(KEYS.units, arr); UNITS.splice(0,UNITS.length,...arr.map(u=>Object.assign({},u))); },
-    getBookings(){ return loadJSON(KEYS.bookings, []); },
-    setBookings(arr){ saveJSON(KEYS.bookings, arr); },
-    addBooking(b){ const all=this.getBookings(); all.push(b); this.setBookings(all); },
-    /** ربط تاريخ محجوز بالوحدة (يمنع الحجز المزدوج على التقويم العام) */
-    markBooked(unitId, iso){
-      const units = this.getUnits();
-      const u = units.find(x=>x.id===unitId);
-      if(u && !u.booked.includes(iso)){ u.booked.push(iso); this.setUnits(units); }
+    AR_MONTHS, AR_DOW, pad, toISO,
+    
+    async initFirebaseData() {
+        if(!window.db) return; // If Firebase failed to load
+        try {
+            // Fetch Settings
+            const setRef = db.collection("settings").doc("main");
+            const setDoc = await setRef.get();
+            if(!setDoc.exists) {
+                await setRef.set(DEFAULT_SETTINGS);
+                Object.assign(SETTINGS, DEFAULT_SETTINGS);
+            } else {
+                Object.assign(SETTINGS, setDoc.data());
+            }
+
+            // Fetch Units
+            const unitsRef = db.collection("units");
+            const unitsSnap = await unitsRef.get();
+            if(unitsSnap.empty) {
+                // Seed units
+                for(const u of DEFAULT_UNITS) {
+                    await unitsRef.doc(u.id).set(u);
+                }
+                UNITS.splice(0, UNITS.length, ...JSON.parse(JSON.stringify(DEFAULT_UNITS)));
+            } else {
+                const fetchedUnits = [];
+                unitsSnap.forEach(doc => { fetchedUnits.push(doc.data()); });
+                // Sort by default ID or keeping same order
+                fetchedUnits.sort((a,b) => a.id.localeCompare(b.id));
+                UNITS.splice(0, UNITS.length, ...fetchedUnits);
+            }
+        } catch(e) {
+            console.error("Firebase fetch error, falling back to defaults", e);
+        }
     },
-    getPass(){ return localStorage.getItem(KEYS.pass); },
-    setPass(hash){ localStorage.setItem(KEYS.pass, hash); },
-    /** إعادة تعيين كلمة المرور إلى الافتراضية (admin123) — تُستخدم من شاشة الدخول */
-    resetPassword(){ localStorage.setItem(KEYS.pass, DEFAULT_PASS_HASH); },
-    /* ===== المفضّلة ===== */
-    getFavorites(){ return loadJSON(KEYS.favorites, []); },
+
+    getSettings(){ return Object.assign({}, SETTINGS); },
+    async setSettings(s){ 
+        Object.assign(SETTINGS, s); 
+        if(window.db) await db.collection("settings").doc("main").set(s);
+    },
+    getUnits(){ return JSON.parse(JSON.stringify(UNITS)); },
+    async setUnits(arr){ 
+        UNITS.splice(0, UNITS.length, ...JSON.parse(JSON.stringify(arr)));
+        if(!window.db) return;
+        const batch = db.batch();
+        arr.forEach(u => {
+            const ref = db.collection("units").doc(u.id);
+            batch.set(ref, u);
+        });
+        await batch.commit();
+    },
+    
+    async getBookings(){
+        if(!window.db) return [];
+        const snap = await db.collection("bookings").get();
+        const bks = [];
+        snap.forEach(d => { const data = d.data(); data.id = d.id; bks.push(data); });
+        return bks;
+    },
+    async addBooking(b){
+        if(!window.db) return;
+        b.createdAt = new Date().toISOString();
+        await db.collection("bookings").add(b);
+    },
+    
+    async markBooked(unitId, iso){
+        const u = UNITS.find(x=>x.id===unitId);
+        if(u && !u.booked.includes(iso)){ 
+            u.booked.push(iso); 
+            if(window.db) await db.collection("units").doc(unitId).update({ booked: u.booked });
+        }
+    },
+    
+    // Favorites still use localStorage (user-specific)
+    getFavorites(){ 
+        try { return JSON.parse(localStorage.getItem("marbella_favorites") || "[]"); }
+        catch(e){ return []; }
+    },
     isFavorite(id){ return this.getFavorites().includes(id); },
     toggleFavorite(id){
-      const f = this.getFavorites();
-      const i = f.indexOf(id);
-      if(i>=0) f.splice(i,1); else f.push(id);
-      saveJSON(KEYS.favorites, f);
+        const f = this.getFavorites();
+        const i = f.indexOf(id);
+        if(i>=0) f.splice(i,1); else f.push(id);
+        localStorage.setItem("marbella_favorites", JSON.stringify(f));
+        // Update likes counter on Firestore
+        this.updateLikes(id, i < 0 ? 1 : -1);
     },
-    /* ===== التقييمات/المراجعات ===== */
-    getReviews(unitId){ const all = loadJSON(KEYS.reviews, {}); return all[unitId] || []; },
-    addReview(unitId, review){
-      const all = loadJSON(KEYS.reviews, {});
-      (all[unitId] = all[unitId] || []).push(Object.assign({at:new Date().toISOString()}, review));
-      saveJSON(KEYS.reviews, all);
+    async updateLikes(unitId, diff) {
+        if(!window.db) return;
+        const u = UNITS.find(x=>x.id===unitId);
+        if(u) {
+            u.likes = (u.likes || 0) + diff;
+            await db.collection("units").doc(unitId).update({ likes: u.likes });
+        }
     },
-    avgRating(unitId){
-      const rs = this.getReviews(unitId);
-      if(!rs.length) return null;
-      return (rs.reduce((s,r)=>s+(+r.rating||0),0)/rs.length);
+    
+    async getReviews(unitId){ 
+        if(!window.db) return [];
+        const snap = await db.collection("reviews").where("unitId", "==", unitId).get();
+        const rs = [];
+        snap.forEach(d => rs.push(d.data()));
+        return rs;
     },
-    resetAll(){
-      saveJSON(KEYS.settings, DEFAULT_SETTINGS);
-      saveJSON(KEYS.units, DEFAULT_UNITS);
-      saveJSON(KEYS.bookings, []);
-      localStorage.setItem(KEYS.pass, DEFAULT_PASS_HASH);
-      localStorage.setItem(KEYS.schema, String(SCHEMA_VERSION));
-      Object.assign(SETTINGS, DEFAULT_SETTINGS);
-      UNITS.splice(0,UNITS.length,...DEFAULT_UNITS.map(u=>Object.assign({},u)));
+    async addReview(unitId, review){
+        if(!window.db) return;
+        review.unitId = unitId;
+        review.createdAt = new Date().toISOString();
+        await db.collection("reviews").add(review);
+    },
+    async avgRating(unitId){
+        const rs = await this.getReviews(unitId);
+        if(!rs.length) return null;
+        return (rs.reduce((s,r)=>s+(+r.rating||0),0)/rs.length);
     }
   };
 }

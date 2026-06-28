@@ -699,7 +699,11 @@ function init(){
     });
   }
 }
-init();
+async function bootstrap() {
+    await window.MarbellaStore.initFirebaseData();
+    init();
+}
+bootstrap();
 
 window.shareUnit = function(id) {
   const url = window.location.origin + window.location.pathname.replace('index.html', '') + 'unit.html?id=' + id;
