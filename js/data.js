@@ -223,7 +223,13 @@ if(!window.MarbellaStore){
           UNITS.splice(0, UNITS.length, ...JSON.parse(JSON.stringify(DEFAULT_UNITS)));
         } else {
           const fetched = [];
-          unitsSnap.forEach(d => fetched.push(d.data()));
+          unitsSnap.forEach(d => {
+            const data = d.data();
+            // ادمج مع الافتراضي لتعبئة أي حقول مفقودة من وثائق قديمة
+            const def = DEFAULT_UNITS.find(u => u.id === data.id);
+            const merged = def ? Object.assign(JSON.parse(JSON.stringify(def)), data) : data;
+            fetched.push(merged);
+          });
           fetched.sort((a,b)=>String(a.id).localeCompare(String(b.id)));
           UNITS.splice(0, UNITS.length, ...fetched);
         }

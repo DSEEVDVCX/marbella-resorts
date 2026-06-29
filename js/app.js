@@ -114,16 +114,17 @@ function renderUnits(filterFn){
     const tagline = isEn ? (u.taglineEn || u.tagline) : u.tagline;
     const capacity = isEn ? (u.capacityEn || u.capacity) : u.capacity;
     const currency = isEn ? (u.currencyEn || u.currency) : u.currency;
-    const featsList = isEn ? (u.featuresEn || u.features) : u.features;
+    const featsList = (isEn ? (u.featuresEn || u.features) : u.features) || [];
+    const imgs = u.images || [];
     
     const features = featsList.map(f=>`<span class="chip"><i class="fa-solid fa-check"></i>${esc(f)}</span>`).join("");
-    const dots = u.images.map((_,i)=>`<span${i===0?' class="active"':''}></span>`).join("");
+    const dots = imgs.map((_,i)=>`<span${i===0?' class="active"':''}></span>`).join("");
     const fav = store && store.isFavorite(u.id);
     
     return `
     <article class="unit-card">
       <div class="unit-gallery" id="gal-${esc(u.id)}">
-        <img src="${esc(u.images[0] || 'assets/images/placeholder.jpg')}" alt="${esc(name)}" width="400" height="250" loading="lazy" />
+        <img src="${esc(imgs[0] || 'assets/images/placeholder.jpg')}" alt="${esc(name)}" width="400" height="250" loading="lazy" />
         <span class="unit-price">${esc(u.price)} <small>${esc(currency)} ${tr("unit-night")}</small></span>
         
         <div class="likes-badge">
@@ -226,12 +227,13 @@ function renderFavorites(){
   // إعادة استخدام renderUnits مع فلتر المفضّلة
   const prevGridId = document.getElementById("units-grid");
   grid.innerHTML = favUnits.map(u => {
-    const features = u.features.map(f=>`<span class="chip"><i class="fa-solid fa-check"></i>${esc(f)}</span>`).join("");
+    const features = (u.features||[]).map(f=>`<span class="chip"><i class="fa-solid fa-check"></i>${esc(f)}</span>`).join("");
+    const imgs = u.images || [];
     const fav = true;
     return `
     <article class="unit-card">
       <div class="unit-gallery">
-        <img src="${esc(u.images[0])}" alt="صورة ${esc(u.name)}" width="400" height="250" loading="lazy" />
+        <img src="${esc(imgs[0] || 'assets/images/placeholder.jpg')}" alt="صورة ${esc(u.name)}" width="400" height="250" loading="lazy" />
         <span class="unit-price">${esc(u.price)} <small>${esc(u.currency)}/الليلة</small></span>
         <button class="fav-btn on" data-fav="${esc(u.id)}" aria-label="إزالة من المفضّلة" aria-pressed="true"><i class="fa-solid fa-heart"></i></button>
       </div>
@@ -696,7 +698,7 @@ function init(){
   }
 }
 async function bootstrap() {
-    await window.MarbellaStore.initFirebaseData();
-    init();
+    try { await window.MarbellaStore.initFirebaseData(); } catch(e){ console.error("initFirebaseData failed:", e); }
+    try { init(); } catch(e){ console.error("init failed:", e); try{ renderUnits(); }catch(_){} }
 }
 bootstrap();
