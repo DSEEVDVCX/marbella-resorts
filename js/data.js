@@ -142,6 +142,37 @@ const FAQ = [
 const DEFAULT_SETTINGS = Object.assign({}, SETTINGS);
 const DEFAULT_UNITS    = JSON.parse(JSON.stringify(UNITS));
 
+/* دمج متين: لا تدع القيم الفارغة/الناقصة من Firestore تُلغي الافتراضي السليم.
+   - null/undefined: تُهمل (نبقي الافتراضي)
+   - مصفوفة فارغة []: تُهمل (نبقي الافتراضي) — يحمي images/features/booked
+   - نص فارغ "": يُهمل
+   - باقي القيم (أرقام/نصوص/بوليان/مصفوفات مملوءة): تُقبل */
+function mergeUnit(def, data){
+  const base = JSON.parse(JSON.stringify(def));
+  if(!data || typeof data !== "object") return base;
+  for(const k of Object.keys(data)){
+    const v = data[k];
+    if(v === null || v === undefined) continue;
+    if(Array.isArray(v)){ if(v.length > 0) base[k] = v; continue; }
+    if(typeof v === "string"){ if(v.trim() !== "") base[k] = v; continue; }
+    base[k] = v;
+  }
+  return base;
+}
+// مثل mergeUnit لكن للإعدادات (كائن مسطّح)
+function mergeSettings(def, data){
+  const base = Object.assign({}, def);
+  if(!data || typeof data !== "object") return base;
+  for(const k of Object.keys(data)){
+    const v = data[k];
+    if(v === null || v === undefined) continue;
+    if(Array.isArray(v)){ if(v.length > 0) base[k] = v; continue; }
+    if(typeof v === "string"){ if(v.trim() !== "") base[k] = v; continue; }
+    base[k] = v;
+  }
+  return base;
+}
+
 
 /* أدوات تاريخ مشتركة */
 const AR_MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
@@ -215,19 +246,19 @@ if(!window.MarbellaStore){
           db.collection("settings").doc("main").get(),
           db.collection("units").get()
         ]);
-        if(!setDoc.exists){ await db.collection("settings").doc("main").set(DEFAULT_SETTINGS); Object.assign(SETTINGS, DEFAULT_SETTINGS); }
-        else { Object.assign(SETTINGS, setDoc.data()); }
+        if(!setDoc.exists){ await db.collection("settings").doc("main").set(DEFAULT_SETTINGS).catch(()=>{}); Object.assign(SETTINGS, DEFAULT_SETTINGS); }
+        else { Object.assign(SETTINGS, mergeSettings(DEFAULT_SETTINGS, setDoc.data())); }
 
         if(unitsSnap.empty){
-          for(const u of DEFAULT_UNITS) await db.collection("units").doc(u.id).set(u);
+          for(const u of DEFAULT_UNITS) await db.collection("units").doc(u.id).set(u).catch(()=>{});
           UNITS.splice(0, UNITS.length, ...JSON.parse(JSON.stringify(DEFAULT_UNITS)));
         } else {
           const fetched = [];
           unitsSnap.forEach(d => {
             const data = d.data();
-            // ادمج مع الافتراضي لتعبئة أي حقول مفقودة من وثائق قديمة
+            // ادمج مع الافتراضي؛ تجاهل القيم الفارغة/الناقصة من Firestore
             const def = DEFAULT_UNITS.find(u => u.id === data.id);
-            const merged = def ? Object.assign(JSON.parse(JSON.stringify(def)), data) : data;
+            const merged = def ? mergeUnit(def, data) : data;
             fetched.push(merged);
           });
           fetched.sort((a,b)=>String(a.id).localeCompare(String(b.id)));

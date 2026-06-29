@@ -9,7 +9,7 @@
    ============================================================ */
 (function () {
   var FB_VERSION = "10.9.0"; // غيّر رقم إصدار Firebase هنا فقط ليُطبّق على كل الصفحات
-  var V = "?v=6";            // cache-busting: زِده عند كل تعديل على ملفات js المحلية
+  var V = "?v=7";            // cache-busting: زِده عند كل تعديل على ملفات js المحلية
   var cdn = "https://www.gstatic.com/firebasejs/" + FB_VERSION + "/firebase-";
   document.write(
     '<script src="' + cdn + 'app-compat.js"><\/script>' +
