@@ -8,6 +8,33 @@ const store = window.MarbellaStore;
 let calUnitId = null, calDate = new Date();
 let cachedBookings = [];
 let _bookingsUnsub = null;
+let bookingsLoadError = "";
+
+const LOGO_OPTIONS = [
+  { label:"اللوقو الحالي", path:"assets/images/logo.png" },
+  { label:"كلاسيك", path:"assets/images/logos/marbella-classic.jpeg" },
+  { label:"العيد", path:"assets/images/logos/marbella-eid-sheep.jpeg" },
+  { label:"الصيف", path:"assets/images/logos/marbella-summer.jpeg" },
+  { label:"رمضان", path:"assets/images/logos/marbella-ramadan.jpeg" },
+  { label:"استوائي", path:"assets/images/logos/marbella-tropical.jpeg" }
+];
+
+function bookingVal(b, key){
+  return String((b && b[key] != null) ? b[key] : "");
+}
+function bookingPrice(b){
+  const n = Number(bookingVal(b, "price").replace(/[^\d.-]/g, ""));
+  return Number.isFinite(n) ? n : 0;
+}
+function bookingDateLabel(value){
+  if(!value) return "";
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleDateString("ar");
+}
+function applyAdminLogo(path){
+  const src = path || "assets/images/logo.png";
+  document.querySelectorAll(".login-logo, .sidebar-brand img").forEach(img => { img.src = src; });
+}
 
 /* ===== أدوات ===== */
 function toast(msg,isErr){
@@ -64,16 +91,33 @@ document.getElementById("logout-btn").addEventListener("click",async ()=>{
 auth.onAuthStateChanged(async (user) => {
   if(user && user.email === _ADMIN_EMAIL){
     await store.initData();     // تحميل الإعدادات والاستراحات من Firestore
-    cachedBookings = await store.getBookings();
+    try{
+      cachedBookings = await store.getBookings();
+      bookingsLoadError = "";
+    }catch(e){
+      console.error("bookings load failed", e);
+      cachedBookings = [];
+      bookingsLoadError = "تعذّر تحميل الحجوزات. تحقق من الاتصال وصلاحيات Firestore.";
+    }
     await loadReviews();        // تحميل التقييمات
     if(_bookingsUnsub){ _bookingsUnsub(); _bookingsUnsub = null; }
     // اشتراك لحظي على الحجوزات لتحديث اللوحة عند وصول حجوزات جديدة
     if(window.db){
       _bookingsUnsub = db.collection("bookings").onSnapshot(async () => {
-        cachedBookings = await store.getBookings();
+        try{
+          cachedBookings = await store.getBookings();
+          bookingsLoadError = "";
+        }catch(e){
+          console.error("bookings refresh failed", e);
+          bookingsLoadError = "تعذّر تحديث الحجوزات.";
+        }
         const active = document.querySelector(".section.active");
         if(active) renderAll();
-      }, err => console.warn("bookings snapshot error", err));
+      }, err => {
+        console.warn("bookings snapshot error", err);
+        bookingsLoadError = "تعذّر الاشتراك في تحديثات الحجوزات. تحقق من صلاحيات Firestore.";
+        renderAll();
+      });
     }
     showAdmin();
   } else {
@@ -105,9 +149,9 @@ document.querySelectorAll(".nav-item").forEach(item=>{
 
 /* ===== Dashboard ===== */
 function renderDashboard(){
-  const bookings=cachedBookings;
+  const bookings=Array.isArray(cachedBookings) ? cachedBookings : [];
   const units=store.getUnits();
-  const totalRev=bookings.reduce((s,b)=>s+(+b.price||0),0);
+  const totalRev=bookings.reduce((s,b)=>s+bookingPrice(b),0);
   const now=new Date();now.setHours(0,0,0,0);
   const in30=new Date(now);in30.setDate(in30.getDate()+30);
   const occCount = units.reduce((s,u)=>s+u.booked.filter(iso=>{const d=new Date(iso);return d>=now&&d<in30;}).length,0);
@@ -119,7 +163,7 @@ function renderDashboard(){
     <div class="stat-card"><div class="sc-top"><span class="sc-label">الإشغال (30 يوم)</span><span class="sc-icon"><i class="fa-solid fa-chart-line"></i></span></div><div class="sc-val">${occPct}%</div><div class="sc-trend">${units.length} استراحات</div></div>
     <div class="stat-card"><div class="sc-top"><span class="sc-label">استراحات نشطة</span><span class="sc-icon"><i class="fa-solid fa-house"></i></span></div><div class="sc-val">${units.length}</div></div>`;
 
-  const counts = units.map(u=>({name:u.name, n:bookings.filter(b=>b.unitId===u.id).length}));
+  const counts = units.map(u=>({name:u.name, n:bookings.filter(b=>b.unitId===u.id || b.unitName===u.name).length}));
   const max = Math.max(1,...counts.map(c=>c.n));
   const chartCard=document.querySelector(".chart-card");
   chartCard.querySelector(".chart-x")?.remove();
@@ -129,11 +173,13 @@ function renderDashboard(){
     `<div class="chart-x">${counts.map(c=>`<span>${esc(c.name.split(" ")[2]||c.name)}</span>`).join("")}</div>`);
 
   const recent=bookings.slice(0,5);
-  document.getElementById("dash-recent").innerHTML = recent.length?`
+  document.getElementById("dash-recent").innerHTML = bookingsLoadError
+    ? `<div class="tbl-empty">${esc(bookingsLoadError)}</div>`
+    : recent.length?`
     <table class="tbl"><thead><tr><th>الاسم</th><th>الاستراحة</th><th>النوع</th><th>التاريخ</th><th>الجوال</th><th>الحالة</th></tr></thead><tbody>
     ${recent.map(b=>{
       const stay = b.stayType === "day" ? "نهاري" : "مبيت";
-      return `<tr><td>${esc(b.name)}</td><td>${esc(b.unitName)}</td><td><small>${stay}</small></td><td>${esc(b.date)}</td><td>${esc(b.phone)}</td><td><span class="tag new">جديد</span></td></tr>`;
+      return `<tr><td>${esc(bookingVal(b,"name"))}</td><td>${esc(bookingVal(b,"unitName"))}</td><td><small>${stay}</small></td><td>${esc(bookingVal(b,"date"))}</td><td>${esc(bookingVal(b,"phone"))}</td><td><span class="tag new">جديد</span></td></tr>`;
     }).join("")}
     </tbody></table>`:`<div class="tbl-empty">لا توجد حجوزات بعد</div>`;
 }
@@ -296,9 +342,13 @@ function editUnit(id){
 
 /* ===== سجل الحجوزات ===== */
 function renderBookings(filter=""){
-  const bookings=cachedBookings.slice();
+  if(bookingsLoadError){
+    document.getElementById("bookings-table").innerHTML = `<div class="tbl-empty">${esc(bookingsLoadError)}</div>`;
+    return;
+  }
+  const bookings=(Array.isArray(cachedBookings) ? cachedBookings : []).slice();
   const f=filter.trim().toLowerCase();
-  const list=f?bookings.filter(b=>(b.name+b.phone+b.unitName).toLowerCase().includes(f)):bookings;
+  const list=f?bookings.filter(b=>[bookingVal(b,"name"),bookingVal(b,"phone"),bookingVal(b,"unitName"),bookingVal(b,"date")].join(" ").toLowerCase().includes(f)):bookings;
   document.getElementById("bookings-table").innerHTML=list.length?`
     <table class="tbl"><thead><tr><th>الاسم</th><th>الاستراحة</th><th>النوع</th><th>التاريخ</th><th>الجوال</th><th>السعر</th><th>تاريخ الطلب</th><th>إجراءات</th></tr></thead><tbody>
     ${list.map(b=>{
@@ -306,12 +356,12 @@ function renderBookings(filter=""){
         ? `<span class="tag" style="background:#fef3c7;color:#92400e">نهاري</span>`
         : `<span class="tag" style="background:#dbeafe;color:#1e40af">مبيت</span>`;
       return `<tr>
-      <td>${esc(b.name)}${b.notes?`<br><small style="color:var(--a-muted)">${esc(b.notes)}</small>`:""}</td>
-      <td>${esc(b.unitName)}</td><td>${stayBadge}</td><td>${esc(b.date)}</td><td>${esc(b.phone)}</td><td>${esc(b.price)} ${esc(b.currency)}</td>
-      <td>${new Date(b.createdAt).toLocaleDateString("ar")}</td>
+      <td>${esc(bookingVal(b,"name"))}${b.notes?`<br><small style="color:var(--a-muted)">${esc(b.notes)}</small>`:""}</td>
+      <td>${esc(bookingVal(b,"unitName"))}</td><td>${stayBadge}</td><td>${esc(bookingVal(b,"date"))}</td><td>${esc(bookingVal(b,"phone"))}</td><td>${bookingPrice(b).toLocaleString("ar")} ${esc(bookingVal(b,"currency"))}</td>
+      <td>${bookingDateLabel(b.createdAt)}</td>
       <td><div class="row-actions">
-        <a class="icon-btn" href="https://wa.me/${b.phone.replace(/\D/g,'')}" target="_blank" rel="noopener" title="واتساب"><i class="fa-brands fa-whatsapp"></i></a>
-        <button class="icon-btn del" data-del="${b.id}" title="حذف"><i class="fa-solid fa-trash"></i></button>
+        <a class="icon-btn" href="https://wa.me/${bookingVal(b,"phone").replace(/\D/g,'')}" target="_blank" rel="noopener" title="واتساب"><i class="fa-brands fa-whatsapp"></i></a>
+        <button class="icon-btn del" data-del="${esc(b.id)}" title="حذف"><i class="fa-solid fa-trash"></i></button>
       </div></td></tr>`;
     }).join("")}
     </tbody></table>`:`<div class="tbl-empty">لا توجد حجوزات${f?" مطابقة":""}</div>`;
@@ -336,7 +386,7 @@ document.getElementById("export-csv").addEventListener("click",()=>{
   const bk=cachedBookings;
   if(!bk.length){toast("لا توجد حجوزات للتصدير",true);return;}
   const rows=[["ID","الاسم","الاستراحة","التاريخ","الجوال","ملاحظات","السعر","العملة","تاريخ الطلب"]];
-  bk.forEach(b=>rows.push([b.id,b.name,b.unitName,b.date,b.phone,b.notes||"",b.price,b.currency,new Date(b.createdAt).toLocaleString()]));
+  bk.forEach(b=>rows.push([b.id,bookingVal(b,"name"),bookingVal(b,"unitName"),bookingVal(b,"date"),bookingVal(b,"phone"),bookingVal(b,"notes"),bookingPrice(b),bookingVal(b,"currency"),bookingDateLabel(b.createdAt)]));
   const csv="\uFEFF"+rows.map(r=>r.map(c=>`"${csvSafe(c).replace(/"/g,'""')}"`).join(",")).join("\n");
   const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);
@@ -356,11 +406,31 @@ function renderSettings(){
   document.getElementById("s-intro").value=s.introMessage||"";
   if(document.getElementById("s-email")) document.getElementById("s-email").value=s.email||"";
   if(document.getElementById("s-bank")) document.getElementById("s-bank").value=s.bankAccount||"";
-  if(document.getElementById("s-logo")) document.getElementById("s-logo").value=s.logoPath||"";
   if(document.getElementById("s-imgbb")) document.getElementById("s-imgbb").value=s.imgbbKey||"";
   if(document.getElementById("s-deposit")) document.getElementById("s-deposit").value=s.depositAmount||"";
   if(document.getElementById("s-insurance")) document.getElementById("s-insurance").value=s.insuranceAmount||"";
   if(document.getElementById("s-pledge")) document.getElementById("s-pledge").value=s.pledgeText||"";
+  renderLogoPicker(s.logoPath || "assets/images/logo.png");
+  applyAdminLogo(s.logoPath);
+}
+function renderLogoPicker(selectedPath){
+  const wrap = document.getElementById("logo-picker");
+  if(!wrap) return;
+  const activePath = LOGO_OPTIONS.some(logo => logo.path === selectedPath) ? selectedPath : LOGO_OPTIONS[0].path;
+  wrap.innerHTML = LOGO_OPTIONS.map((logo, i) => {
+    const checked = logo.path === activePath || (!activePath && i === 0);
+    return `<label class="logo-option ${checked ? "active" : ""}">
+      <input type="radio" name="logo-choice" value="${esc(logo.path)}" ${checked ? "checked" : ""} />
+      <img src="${esc(logo.path)}" alt="${esc(logo.label)}" loading="lazy" />
+      <span>${esc(logo.label)}</span>
+    </label>`;
+  }).join("");
+  wrap.querySelectorAll('input[name="logo-choice"]').forEach(input => {
+    input.addEventListener("change", () => {
+      wrap.querySelectorAll(".logo-option").forEach(el => el.classList.toggle("active", el.contains(input) && input.checked));
+      applyAdminLogo(input.value);
+    });
+  });
 }
 document.getElementById("settings-form").addEventListener("submit",async e=>{
   e.preventDefault();
@@ -374,10 +444,19 @@ document.getElementById("settings-form").addEventListener("submit",async e=>{
   s.introMessage=document.getElementById("s-intro").value.trim();
   if(document.getElementById("s-email")) s.email=document.getElementById("s-email").value.trim();
   if(document.getElementById("s-bank")) s.bankAccount=document.getElementById("s-bank").value.trim();
-  if(document.getElementById("s-logo")) s.logoPath=document.getElementById("s-logo").value.trim();
   if(document.getElementById("s-imgbb")) s.imgbbKey=document.getElementById("s-imgbb").value.trim();
-  if(document.getElementById("s-deposit")) s.depositAmount=+document.getElementById("s-deposit").value||500;
-  if(document.getElementById("s-insurance")) s.insuranceAmount=+document.getElementById("s-insurance").value||0;
+  const logoChoice = document.querySelector('input[name="logo-choice"]:checked');
+  if(logoChoice) s.logoPath = logoChoice.value;
+  if(document.getElementById("s-deposit")){
+    const val = document.getElementById("s-deposit").value.trim();
+    const num = Number(val);
+    s.depositAmount = val === "" ? 500 : (Number.isFinite(num) ? num : (s.depositAmount || 500));
+  }
+  if(document.getElementById("s-insurance")){
+    const val = document.getElementById("s-insurance").value.trim();
+    const num = Number(val);
+    s.insuranceAmount = val === "" ? 0 : (Number.isFinite(num) ? num : (s.insuranceAmount || 0));
+  }
   if(document.getElementById("s-pledge")) s.pledgeText=document.getElementById("s-pledge").value.trim();
   await store.setSettings(s);toast("تم حفظ الإعدادات");
 });

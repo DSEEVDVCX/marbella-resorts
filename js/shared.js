@@ -217,8 +217,11 @@ function initShell(){
   set("brandName", brand);
   set("footerBrand", brand);
   
-  const logoEl = $("main-logo");
-  if(logoEl && SETTINGS.logoPath) logoEl.src = SETTINGS.logoPath;
+  if(SETTINGS.logoPath){
+    document.querySelectorAll(".logo, .login-logo, [data-logo]").forEach(img => {
+      if(img && img.tagName === "IMG") img.src = SETTINGS.logoPath;
+    });
+  }
   
   const emailEl = $("footer-email");
   if(emailEl && SETTINGS.email) emailEl.textContent = SETTINGS.email;

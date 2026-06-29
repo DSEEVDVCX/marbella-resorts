@@ -501,15 +501,20 @@ function updateBookingSub(){
 }
 
 /* ===== ملء قيم العربون/التأمين/التعهد من الإعدادات ===== */
+function settingNumber(value, fallback){
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 function applyPledgeSettings(){
   const s = SETTINGS;
-  const deposit = s.depositAmount || 500;
+  const deposit = settingNumber(s.depositAmount, 500);
   const depEl = document.getElementById("pledge-deposit-amt");
   if(depEl) depEl.textContent = deposit + " درهم";
 
-  const insurance = s.insuranceAmount;
+  const insurance = settingNumber(s.insuranceAmount, 0);
   const insEl = document.getElementById("pledge-insurance-amt");
-  if(insEl) insEl.textContent = insurance ? (insurance + " درهم") : "تأمين مسترجع";
+  if(insEl) insEl.textContent = insurance > 0 ? (insurance + " درهم") : "تأمين مسترجع";
 
   const pledgeText = s.pledgeText || "أتعهد بعدم تغيير لون مياه المسبح أو إفسادها، وأوافق على دفع العربون والتأمين. أُقرّ بصحة المعلومات أعلاه.";
   const ptEl = document.getElementById("pledge-text");
@@ -543,7 +548,8 @@ async function sendToWhatsApp(){
   const notes = document.getElementById("guest-notes").value.trim();
   const price = getStayPrice(currentUnit);
   const stayLabel = getStayLabel();
-  const deposit = SETTINGS.depositAmount || 500;
+  const deposit = settingNumber(SETTINGS.depositAmount, 500);
+  const insurance = settingNumber(SETTINGS.insuranceAmount, 0);
 
   const btn = document.getElementById("send-whatsapp");
   btn.setAttribute("aria-busy","true");
@@ -558,7 +564,8 @@ async function sendToWhatsApp(){
   msg += `👤 الاسم: ${name}\n`;
   msg += `📱 الجوال: ${phone}\n`;
   if(notes) msg += `📝 ملاحظات: ${notes}\n`;
-  msg += `\n✅ تعهدت بدفع عربون ${deposit} درهم وتأمين مسترجع، وألا أُغيّر لون مياه المسبح.\n`;
+  const insuranceText = insurance > 0 ? `وتأمين ${insurance} درهم` : "وتأمين مسترجع";
+  msg += `\n✅ تعهدت بدفع عربون ${deposit} درهم ${insuranceText}، وألا أُغيّر لون مياه المسبح.\n`;
   msg += `رجو تأكيد الحجز، شكراً لكم.`;
 
   const url = `https://wa.me/${SETTINGS.whatsapp}?text=${encodeURIComponent(msg)}`;
@@ -809,9 +816,11 @@ async function bootstrap() {
           buildFilterChips();
           renderTestimonials();
           updateFavCount();
+          applyPledgeSettings();
           window.dispatchEvent(new Event("firebaseDataReady"));
         }catch(e){ console.error("refresh after Firebase failed:", e); }
       }).catch(e => console.error("initFirebaseData failed:", e));
     }
 }
 bootstrap();
+window.addEventListener("firebaseDataReady", applyPledgeSettings);

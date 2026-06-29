@@ -8,6 +8,7 @@ const SETTINGS = {
   // رقم واتساب بدون + أو مسافات (الصيغة الدولية)
   whatsapp: "971566222566",
   phoneDisplay: "+971 56 622 2566",
+  logoPath: "assets/images/logo.png",
   instagram: "https://www.instagram.com/resortsadeem",
   tiktok: "https://www.tiktok.com/@resortsadeem",
   // المنطقة العامة
@@ -347,22 +348,23 @@ if(!window.MarbellaStore){
 
     /* ===== الحجوزات ===== */
     async getBookings(){
-      if(!window.db) return [];
+      if(!window.db) throw new Error("Firebase is not ready");
       try{
         const snap = await db.collection("bookings").get();
         const bks = [];
         snap.forEach(d => { const data = d.data(); data.id = d.id; bks.push(data); });
         bks.sort((a,b)=> String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
         return bks;
-      }catch(e){ console.error("getBookings failed", e); return []; }
+      }catch(e){ console.error("getBookings failed", e); throw e; }
     },
     async addBooking(b){
-      if(!window.db) return;
+      if(!window.db && window.firebaseBootReady) await window.firebaseBootReady;
+      if(!window.db) throw new Error("Firebase is not ready");
       b.createdAt = new Date().toISOString();
       await db.collection("bookings").add(b);
     },
     async deleteBooking(id){
-      if(!window.db) return;
+      if(!window.db) throw new Error("Firebase is not ready");
       await db.collection("bookings").doc(id).delete();
     },
 
