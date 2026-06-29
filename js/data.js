@@ -299,8 +299,8 @@ if(!window.MarbellaStore){
     },
     async initFirebaseData(){
       // المصادقة أولاً ثم جلب/زرع البيانات
-      await this._initAuth();
       await this.initData();
+      this._initAuth().catch(e => console.warn("auth init failed", e));
     },
 
     /* ===== الإعدادات ===== */

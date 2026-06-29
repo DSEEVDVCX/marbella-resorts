@@ -60,7 +60,15 @@ const DICT = {
     "book-deposit": "تأكيد الحجز يتطلب دفع عربون بقيمة 500 درهم لحساب رقم:",
     "pledge-deposit": "أتعهد بدفع تأمين مسترجع (يُسترد في حال عدم وجود تلف أو فقد أو كسر).",
     "pledge-pool": "أتعهد بعدم استخدام أي مواد تغير لون المسبح (صابون، ألوان، إلخ).",
-    "directions-title": "طريقة الوصول"
+    "directions-title": "طريقة الوصول",
+    "stay-night": "مع مبيت",
+    "stay-day": "نهاري (بدون مبيت)",
+    "pledge-title": "العربون والتعهد",
+    "pledge-deposit": "عربون لتأكيد الحجز عند الطلب",
+    "pledge-insurance": "تأمين مسترجع",
+    "pledge-insurance-desc": "يُسترد كاملاً عند عدم وجود تلف أو فقد أو كسر",
+    "pledge-agree": "أتعهد بعدم تغيير لون مياه المسبح أو إفسادها، وأوافق على دفع العربون والتأمين. أُقرّ بصحة المعلومات أعلاه.",
+    "pledge-required": "يجب الموافقة على التعهد لإكمال الحجز"
   },
   en: {
     "nav-about": "About Us",
@@ -118,18 +126,35 @@ const DICT = {
     "book-deposit": "Booking requires a 500 AED deposit to account:",
     "pledge-deposit": "I pledge to pay a refundable deposit (refunded if no damage/loss occurs).",
     "pledge-pool": "I pledge not to use any substances that change the pool water color (dyes, soap, etc).",
-    "directions-title": "Directions"
+    "directions-title": "Directions",
+    "stay-night": "With overnight stay",
+    "stay-day": "Day use (no overnight)",
+    "pledge-title": "Deposit & Pledge",
+    "pledge-deposit": "Deposit to confirm booking",
+    "pledge-insurance": "Refundable insurance",
+    "pledge-insurance-desc": "Fully refunded if no damage, loss, or breakage",
+    "pledge-agree": "I pledge not to change the pool water color or damage it, and I agree to pay the deposit and insurance. I confirm the above information is correct.",
+    "pledge-required": "You must agree to the pledge to complete booking"
   }
 };
 
-let currentLang = (window.MarbellaStore && window.MarbellaStore.getLang) ? window.MarbellaStore.getLang() : "ar";
+const urlLang = new URLSearchParams(location.search).get("lang");
+let currentLang = (urlLang === "ar" || urlLang === "en")
+  ? urlLang
+  : ((window.MarbellaStore && window.MarbellaStore.getLang) ? window.MarbellaStore.getLang() : "ar");
 
 /* تهيئة موحّدة للصفحات العامة: انتظار Firebase + initShell + رد نداء جاهز */
 window.bootstrapPage = function(onReady){
   document.addEventListener("DOMContentLoaded", async () => {
-    if(window.MarbellaStore) await window.MarbellaStore.initFirebaseData();
     initShell();
     if(typeof onReady === "function"){ try{ await onReady(); }catch(e){ console.error(e); } }
+    if(window.MarbellaStore){
+      const firebaseReady = window.db ? Promise.resolve() : (window.firebaseBootReady || Promise.resolve());
+      firebaseReady.then(() => window.MarbellaStore.initFirebaseData()).then(() => {
+        initShell();
+        window.dispatchEvent(new Event("firebaseDataReady"));
+      }).catch(e => console.error("initFirebaseData failed:", e));
+    }
   });
 };
 
@@ -139,8 +164,9 @@ function tr(key){
 }
 
 function updateLanguage(lang) {
+  const prevLang = currentLang;
   currentLang = lang;
-  if(window.MarbellaStore && window.MarbellaStore.setLang) window.MarbellaStore.setLang(lang);
+  if(prevLang !== lang && window.MarbellaStore && window.MarbellaStore.setLang) window.MarbellaStore.setLang(lang);
 
   const html = document.documentElement;
   html.lang = lang;
@@ -173,7 +199,7 @@ function updateLanguage(lang) {
   set("areaName3", area);
   
   // Trigger custom event so other scripts can re-render if needed
-  window.dispatchEvent(new Event("languageChanged"));
+  if(prevLang !== lang) window.dispatchEvent(new Event("languageChanged"));
 }
 
 /* ===== ربط الإعدادات العامة بالعناصر ===== */
@@ -225,11 +251,15 @@ function initShell(){
   if(mapEl && UNITS[0]) mapEl.src = `https://www.google.com/maps?q=${UNITS[0].lat},${UNITS[0].lng}&z=14&output=embed`;
 
   const nav = $("navbar");
-  if(nav) window.addEventListener("scroll", () => nav.classList.toggle("scrolled", window.scrollY > 20), {passive:true});
+  if(nav && !nav.dataset.scrollBound){
+    nav.dataset.scrollBound = "1";
+    window.addEventListener("scroll", () => nav.classList.toggle("scrolled", window.scrollY > 20), {passive:true});
+  }
 
   const toggle = $("nav-toggle");
   const links = $("nav-links");
-  if(toggle && links){
+  if(toggle && links && !toggle.dataset.navBound){
+    toggle.dataset.navBound = "1";
     toggle.addEventListener("click", () => {
       const open = links.classList.toggle("open");
       toggle.setAttribute("aria-expanded", open ? "true" : "false");
@@ -247,13 +277,17 @@ function initShell(){
     const store = window.MarbellaStore;
     const isDark = store ? (store.getTheme()==="dark") : document.documentElement.classList.contains("theme-dark");
     tToggle.querySelector("i").className = isDark ? "fa-solid fa-sun" : "fa-solid fa-moon";
-    tToggle.addEventListener("click",()=>{
-      if(store && store.toggleTheme) store.toggleTheme();
-    });
+    if(!tToggle.dataset.themeBound){
+      tToggle.dataset.themeBound = "1";
+      tToggle.addEventListener("click",()=>{
+        if(store && store.toggleTheme) store.toggleTheme();
+      });
+    }
   }
 
   const lToggle = $("lang-toggle");
-  if(lToggle){
+  if(lToggle && !lToggle.dataset.langBound){
+    lToggle.dataset.langBound = "1";
     lToggle.addEventListener("click",()=>{
       const nextLang = currentLang === "ar" ? "en" : "ar";
       updateLanguage(nextLang);

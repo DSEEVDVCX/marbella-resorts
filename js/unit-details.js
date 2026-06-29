@@ -133,5 +133,11 @@ bootstrapPage(async () => {
   });
 
   // إعادة عرض التقييمات عند تبديل اللغة
-  window.addEventListener("languageChanged", () => location.reload());
+  window.addEventListener("languageChanged", () => {
+    const url = new URL(location.href);
+    if(url.searchParams.get("lang") !== currentLang){
+      url.searchParams.set("lang", currentLang);
+      location.href = url.toString();
+    }
+  });
 });

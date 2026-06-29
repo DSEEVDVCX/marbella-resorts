@@ -6,6 +6,17 @@
 let currentUnit = null;   // الإستراحة المختارة حالياً
 let calDate = new Date();  // الشهر المعروض في التقويم
 let selectedDate = null;   // التاريخ المختار من المستخدم
+let stayType = "night";     // نوع الحجز: "night" (مع مبيت) أو "day" (نهاري)
+
+/* ===== أسعار نوع الحجز =====
+   النهاري: نصف سعر الليلة تقريباً (يمكن تخصيصه لكل استراحة عبر حقل dayPrice) */
+function getStayPrice(unit){
+  if(stayType === "day") return unit.dayPrice || Math.round(unit.price * 0.6);
+  return unit.price;
+}
+function getStayLabel(){
+  return stayType === "day" ? "نهاري (بدون مبيت)" : "مع مبيت";
+}
 
 /* ===== حالة الفلاتر ===== */
 let unitFilters = { q:"", sort:"default", feats:[], section:"all" };
@@ -446,10 +457,22 @@ function openBooking(unitId){
   if(!currentUnit) return;
   selectedDate = null;
   calDate = new Date();
+  stayType = "night";
   document.getElementById("modal-title").textContent = `حجز: ${currentUnit.name}`;
-  document.getElementById("modal-sub").textContent =
-    `${currentUnit.price} ${currentUnit.currency} / الليلة — ${currentUnit.tagline}`;
+  updateBookingSub();
   document.getElementById("booking-form").reset();
+  // إعادة ضبط نوع الحجز إلى الافتراضي (مع مبيت)
+  document.querySelectorAll(".stay-opt").forEach(b=>{
+    const active = b.dataset.stay === stayType;
+    b.classList.toggle("active", active);
+    b.setAttribute("aria-checked", active ? "true" : "false");
+  });
+  document.getElementById("pledge-agree").checked = false;
+  // مسح خطأ التعهد مباشرة (دون setFieldError الذي يتوقع عنصر input بمعرّف مطابق)
+  const pErr = document.getElementById("err-pledge");
+  if(pErr) pErr.textContent = "";
+  const pCard = document.querySelector(".pledge-card");
+  if(pCard) pCard.classList.remove("invalid");
   setFieldError("guest-name","");
   setFieldError("guest-phone","");
   renderCalendar();
@@ -457,6 +480,13 @@ function openBooking(unitId){
   modal.hidden = false;
   document.body.style.overflow = "hidden";
   modal.querySelector(".modal-close").focus();
+}
+
+function updateBookingSub(){
+  const price = getStayPrice(currentUnit);
+  const lbl = getStayLabel();
+  document.getElementById("modal-sub").textContent =
+    `${price} ${currentUnit.currency} — ${lbl} — ${currentUnit.tagline}`;
 }
 
 function closeBooking(){
@@ -473,15 +503,19 @@ async function sendToWhatsApp(){
   }
   const okName = validateName();
   const okPhone = validatePhone();
-  if(!okName || !okPhone){
+  const okPledge = validatePledge();
+  if(!okName || !okPhone || !okPledge){
     showToast("راجع الحقول المطلوبة","err");
-    (okName? document.getElementById("guest-phone"):document.getElementById("guest-name")).focus();
+    if(!okPledge){ document.getElementById("pledge-agree").focus(); }
+    else { (okName? document.getElementById("guest-phone"):document.getElementById("guest-name")).focus(); }
     return false;
   }
 
   const name = document.getElementById("guest-name").value.trim();
   const phone = document.getElementById("guest-phone").value.trim();
   const notes = document.getElementById("guest-notes").value.trim();
+  const price = getStayPrice(currentUnit);
+  const stayLabel = getStayLabel();
 
   const btn = document.getElementById("send-whatsapp");
   btn.setAttribute("aria-busy","true");
@@ -491,11 +525,13 @@ async function sendToWhatsApp(){
   let msg = `${SETTINGS.introMessage}\n\n`;
   msg += `🏡 الاستراحة: ${currentUnit.name}\n`;
   msg += `📅 التاريخ: ${dStr}\n`;
-  msg += `💵 السعر: ${currentUnit.price} ${currentUnit.currency} / الليلة\n`;
+  msg += `🕒 نوع الحجز: ${stayLabel}\n`;
+  msg += `💵 السعر: ${price} ${currentUnit.currency}\n`;
   msg += `👤 الاسم: ${name}\n`;
   msg += `📱 الجوال: ${phone}\n`;
   if(notes) msg += `📝 ملاحظات: ${notes}\n`;
-  msg += `\nرجو تأكيد الحجز، شكراً لكم.`;
+  msg += `\n✅ تعهدت بدفع عربون 500 درهم وتأمين مسترجع، وألا أُغيّر لون مياه المسبح.\n`;
+  msg += `رجو تأكيد الحجز، شكراً لكم.`;
 
   const url = `https://wa.me/${SETTINGS.whatsapp}?text=${encodeURIComponent(msg)}`;
 
@@ -508,9 +544,12 @@ async function sendToWhatsApp(){
         unitId: currentUnit.id,
         unitName: currentUnit.name,
         date: isoDate,
+        stayType: stayType,
+        stayLabel: stayLabel,
         name, phone, notes,
-        price: currentUnit.price,
+        price: price,
         currency: currentUnit.currency,
+        pledge: true,
         createdAt: new Date().toISOString()
       });
     } catch(e){
@@ -528,6 +567,21 @@ async function sendToWhatsApp(){
   window.open(url,"_blank");
   showToast("جاري فتح واتساب لإرسال طلبك","ok");
   return false;
+}
+
+/* ===== التحقق من التعهد ===== */
+function validatePledge(){
+  const cb = document.getElementById("pledge-agree");
+  const err = document.getElementById("err-pledge");
+  const card = cb.closest(".pledge-card");
+  if(!cb.checked){
+    card.classList.add("invalid");
+    if(err) err.textContent = "يجب الموافقة على التعهد لإكمال الحجز";
+    return false;
+  }
+  card.classList.remove("invalid");
+  if(err) err.textContent = "";
+  return true;
 }
 
 /* ============================================================
@@ -683,6 +737,19 @@ function init(){
   const fSort = document.getElementById("filter-sort");
   if(fSort) fSort.addEventListener("change",()=>{ unitFilters.sort = fSort.value; renderUnits(); });
 
+  // تبديل نوع الحجز (نهاري/مبيت)
+  document.querySelectorAll(".stay-opt").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      stayType = btn.dataset.stay;
+      document.querySelectorAll(".stay-opt").forEach(b=>{
+        const active = b === btn;
+        b.classList.toggle("active", active);
+        b.setAttribute("aria-checked", active ? "true" : "false");
+      });
+      updateBookingSub();
+    });
+  });
+
   // عدّاد العروض التنازلي
   initCountdown();
 
@@ -698,7 +765,19 @@ function init(){
   }
 }
 async function bootstrap() {
-    try { await window.MarbellaStore.initFirebaseData(); } catch(e){ console.error("initFirebaseData failed:", e); }
     try { init(); } catch(e){ console.error("init failed:", e); try{ renderUnits(); }catch(_){} }
+    if(window.MarbellaStore){
+      const firebaseReady = window.db ? Promise.resolve() : (window.firebaseBootReady || Promise.resolve());
+      firebaseReady.then(() => window.MarbellaStore.initFirebaseData()).then(() => {
+        try{
+          initShell();
+          renderUnits();
+          buildFilterChips();
+          renderTestimonials();
+          updateFavCount();
+          window.dispatchEvent(new Event("firebaseDataReady"));
+        }catch(e){ console.error("refresh after Firebase failed:", e); }
+      }).catch(e => console.error("initFirebaseData failed:", e));
+    }
 }
 bootstrap();

@@ -130,8 +130,11 @@ function renderDashboard(){
 
   const recent=bookings.slice(0,5);
   document.getElementById("dash-recent").innerHTML = recent.length?`
-    <table class="tbl"><thead><tr><th>الاسم</th><th>الاستراحة</th><th>التاريخ</th><th>الجوال</th><th>الحالة</th></tr></thead><tbody>
-    ${recent.map(b=>`<tr><td>${esc(b.name)}</td><td>${esc(b.unitName)}</td><td>${esc(b.date)}</td><td>${esc(b.phone)}</td><td><span class="tag new">جديد</span></td></tr>`).join("")}
+    <table class="tbl"><thead><tr><th>الاسم</th><th>الاستراحة</th><th>النوع</th><th>التاريخ</th><th>الجوال</th><th>الحالة</th></tr></thead><tbody>
+    ${recent.map(b=>{
+      const stay = b.stayType === "day" ? "نهاري" : "مبيت";
+      return `<tr><td>${esc(b.name)}</td><td>${esc(b.unitName)}</td><td><small>${stay}</small></td><td>${esc(b.date)}</td><td>${esc(b.phone)}</td><td><span class="tag new">جديد</span></td></tr>`;
+    }).join("")}
     </tbody></table>`:`<div class="tbl-empty">لا توجد حجوزات بعد</div>`;
 }
 
@@ -294,15 +297,20 @@ function renderBookings(filter=""){
   const f=filter.trim().toLowerCase();
   const list=f?bookings.filter(b=>(b.name+b.phone+b.unitName).toLowerCase().includes(f)):bookings;
   document.getElementById("bookings-table").innerHTML=list.length?`
-    <table class="tbl"><thead><tr><th>الاسم</th><th>الاستراحة</th><th>التاريخ</th><th>الجوال</th><th>السعر</th><th>تاريخ الطلب</th><th>إجراءات</th></tr></thead><tbody>
-    ${list.map(b=>`<tr>
+    <table class="tbl"><thead><tr><th>الاسم</th><th>الاستراحة</th><th>النوع</th><th>التاريخ</th><th>الجوال</th><th>السعر</th><th>تاريخ الطلب</th><th>إجراءات</th></tr></thead><tbody>
+    ${list.map(b=>{
+      const stayBadge = b.stayType === "day"
+        ? `<span class="tag" style="background:#fef3c7;color:#92400e">نهاري</span>`
+        : `<span class="tag" style="background:#dbeafe;color:#1e40af">مبيت</span>`;
+      return `<tr>
       <td>${esc(b.name)}${b.notes?`<br><small style="color:var(--a-muted)">${esc(b.notes)}</small>`:""}</td>
-      <td>${esc(b.unitName)}</td><td>${esc(b.date)}</td><td>${esc(b.phone)}</td><td>${esc(b.price)} ${esc(b.currency)}</td>
+      <td>${esc(b.unitName)}</td><td>${stayBadge}</td><td>${esc(b.date)}</td><td>${esc(b.phone)}</td><td>${esc(b.price)} ${esc(b.currency)}</td>
       <td>${new Date(b.createdAt).toLocaleDateString("ar")}</td>
       <td><div class="row-actions">
         <a class="icon-btn" href="https://wa.me/${b.phone.replace(/\D/g,'')}" target="_blank" rel="noopener" title="واتساب"><i class="fa-brands fa-whatsapp"></i></a>
         <button class="icon-btn del" data-del="${b.id}" title="حذف"><i class="fa-solid fa-trash"></i></button>
-      </div></td></tr>`).join("")}
+      </div></td></tr>`;
+    }).join("")}
     </tbody></table>`:`<div class="tbl-empty">لا توجد حجوزات${f?" مطابقة":""}</div>`;
   document.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",async ()=>{
     const id = b.dataset.del;

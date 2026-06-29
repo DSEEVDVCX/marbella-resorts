@@ -1,22 +1,44 @@
-/* ============================================================
-   مُحمِّل Firebase المركزي — يحقن وسميات SDK المتوافقة (compat) +
-   ملف الإعداد + data.js بشكل متزامن أثناء تحليل الصفحة،
-   فيُركَّز رقم إصدار Firebase في مكان واحد (هنا فقط).
-   يُستدعى في <body> قبل shared.js / admin.js ومنطق الصفحة.
-
-   ملاحظة: document.write متزامن أثناء التحليل الأولي للصفحة فقط،
-   وهو النمط المعتمد لتحميل SDKs خارجية بالترتيب قبل منطق التطبيق.
-   ============================================================ */
+/* Central Firebase loader.
+   Public pages render from local data first, then load Firebase in the background.
+   Admin keeps blocking Firebase loading because admin.js needs auth/db immediately. */
 (function () {
-  var FB_VERSION = "10.9.0"; // غيّر رقم إصدار Firebase هنا فقط ليُطبّق على كل الصفحات
-  var V = "?v=7";            // cache-busting: زِده عند كل تعديل على ملفات js المحلية
+  var FB_VERSION = "10.9.0";
+  var V = "?v=9";
   var cdn = "https://www.gstatic.com/firebasejs/" + FB_VERSION + "/firebase-";
+  var isAdmin = /(^|\/)admin\.html(?:$|[?#])/.test(location.pathname);
+
+  if (isAdmin) {
+    document.write(
+      '<script src="' + cdn + 'app-compat.js"><\/script>' +
+      '<script src="' + cdn + 'firestore-compat.js"><\/script>' +
+      '<script src="' + cdn + 'auth-compat.js"><\/script>' +
+      '<script src="js/utils.js' + V + '"><\/script>' +
+      '<script src="js/firebase-config.js' + V + '"><\/script>' +
+      '<script src="js/data.js' + V + '"><\/script>'
+    );
+    return;
+  }
+
   document.write(
-    '<script src="' + cdn + 'app-compat.js"><\/script>' +
-    '<script src="' + cdn + 'firestore-compat.js"><\/script>' +
-    '<script src="' + cdn + 'auth-compat.js"><\/script>' +
     '<script src="js/utils.js' + V + '"><\/script>' +
-    '<script src="js/firebase-config.js' + V + '"><\/script>' +
     '<script src="js/data.js' + V + '"><\/script>'
   );
+
+  function load(src) {
+    return new Promise(function (resolve, reject) {
+      var script = document.createElement("script");
+      script.src = src;
+      script.async = true;
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+
+  window.firebaseBootReady = load(cdn + "app-compat.js")
+    .then(function () { return load(cdn + "firestore-compat.js"); })
+    .then(function () { return load(cdn + "auth-compat.js"); })
+    .then(function () { return load("js/firebase-config.js" + V); })
+    .then(function () { window.dispatchEvent(new Event("firebaseReady")); })
+    .catch(function (error) { console.warn("Firebase async load failed", error); });
 })();
