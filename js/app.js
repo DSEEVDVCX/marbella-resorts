@@ -460,6 +460,7 @@ function openBooking(unitId){
   stayType = "night";
   document.getElementById("modal-title").textContent = `حجز: ${currentUnit.name}`;
   updateBookingSub();
+  applyPledgeSettings();
   document.getElementById("booking-form").reset();
   // إعادة ضبط نوع الحجز إلى الافتراضي (مع مبيت)
   document.querySelectorAll(".stay-opt").forEach(b=>{
@@ -489,6 +490,22 @@ function updateBookingSub(){
     `${price} ${currentUnit.currency} — ${lbl} — ${currentUnit.tagline}`;
 }
 
+/* ===== ملء قيم العربون/التأمين/التعهد من الإعدادات ===== */
+function applyPledgeSettings(){
+  const s = SETTINGS;
+  const deposit = s.depositAmount || 500;
+  const depEl = document.getElementById("pledge-deposit-amt");
+  if(depEl) depEl.textContent = deposit + " درهم";
+
+  const insurance = s.insuranceAmount;
+  const insEl = document.getElementById("pledge-insurance-amt");
+  if(insEl) insEl.textContent = insurance ? (insurance + " درهم") : "تأمين مسترجع";
+
+  const pledgeText = s.pledgeText || "أتعهد بعدم تغيير لون مياه المسبح أو إفسادها، وأوافق على دفع العربون والتأمين. أُقرّ بصحة المعلومات أعلاه.";
+  const ptEl = document.getElementById("pledge-text");
+  if(ptEl) ptEl.textContent = pledgeText;
+}
+
 function closeBooking(){
   const modal = document.getElementById("booking-modal");
   modal.hidden = true;
@@ -516,6 +533,7 @@ async function sendToWhatsApp(){
   const notes = document.getElementById("guest-notes").value.trim();
   const price = getStayPrice(currentUnit);
   const stayLabel = getStayLabel();
+  const deposit = SETTINGS.depositAmount || 500;
 
   const btn = document.getElementById("send-whatsapp");
   btn.setAttribute("aria-busy","true");
@@ -530,7 +548,7 @@ async function sendToWhatsApp(){
   msg += `👤 الاسم: ${name}\n`;
   msg += `📱 الجوال: ${phone}\n`;
   if(notes) msg += `📝 ملاحظات: ${notes}\n`;
-  msg += `\n✅ تعهدت بدفع عربون 500 درهم وتأمين مسترجع، وألا أُغيّر لون مياه المسبح.\n`;
+  msg += `\n✅ تعهدت بدفع عربون ${deposit} درهم وتأمين مسترجع، وألا أُغيّر لون مياه المسبح.\n`;
   msg += `رجو تأكيد الحجز، شكراً لكم.`;
 
   const url = `https://wa.me/${SETTINGS.whatsapp}?text=${encodeURIComponent(msg)}`;

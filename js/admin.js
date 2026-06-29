@@ -206,9 +206,10 @@ function editUnit(id){
     <div class="a-field"><label>الاسم</label><input id="e-name" value="${esc(u.name)}"/></div>
     <div class="a-field"><label>الوصف</label><input id="e-tag" value="${esc(u.tagline)}"/></div>
     <div class="a-row">
-      <div class="a-field"><label>السعر</label><input id="e-price" type="number" value="${u.price}"/></div>
-      <div class="a-field"><label>العملة</label><input id="e-curr" value="${esc(u.currency)}"/></div>
+      <div class="a-field"><label>سعر المبيت</label><input id="e-price" type="number" value="${u.price}"/></div>
+      <div class="a-field"><label>سعر النهاري</label><input id="e-dayprice" type="number" value="${u.dayPrice||""}" placeholder="افتراضي 60%"/></div>
     </div>
+    <div class="a-field"><label>العملة</label><input id="e-curr" value="${esc(u.currency)}"/></div>
     <div class="a-field"><label>السعة</label><input id="e-cap" value="${esc(u.capacity)}"/></div>
     <div class="a-row">
       <div class="a-field"><label>الغرف</label><input id="e-beds" value="${esc(u.beds)}"/></div>
@@ -282,6 +283,8 @@ function editUnit(id){
     u.name=wrap.querySelector("#e-name").value.trim()||u.name;
     u.tagline=wrap.querySelector("#e-tag").value.trim();
     u.price=+wrap.querySelector("#e-price").value||u.price;
+    const dpVal = wrap.querySelector("#e-dayprice").value.trim();
+    u.dayPrice = dpVal ? +dpVal : null;   // null = استخدم الافتراضي (60%) في الموقع
     u.currency=wrap.querySelector("#e-curr").value.trim()||u.currency;
     u.capacity=wrap.querySelector("#e-cap").value.trim();
     u.beds=wrap.querySelector("#e-beds").value.trim();
@@ -355,6 +358,9 @@ function renderSettings(){
   if(document.getElementById("s-bank")) document.getElementById("s-bank").value=s.bankAccount||"";
   if(document.getElementById("s-logo")) document.getElementById("s-logo").value=s.logoPath||"";
   if(document.getElementById("s-imgbb")) document.getElementById("s-imgbb").value=s.imgbbKey||"";
+  if(document.getElementById("s-deposit")) document.getElementById("s-deposit").value=s.depositAmount||"";
+  if(document.getElementById("s-insurance")) document.getElementById("s-insurance").value=s.insuranceAmount||"";
+  if(document.getElementById("s-pledge")) document.getElementById("s-pledge").value=s.pledgeText||"";
 }
 document.getElementById("settings-form").addEventListener("submit",async e=>{
   e.preventDefault();
@@ -370,6 +376,9 @@ document.getElementById("settings-form").addEventListener("submit",async e=>{
   if(document.getElementById("s-bank")) s.bankAccount=document.getElementById("s-bank").value.trim();
   if(document.getElementById("s-logo")) s.logoPath=document.getElementById("s-logo").value.trim();
   if(document.getElementById("s-imgbb")) s.imgbbKey=document.getElementById("s-imgbb").value.trim();
+  if(document.getElementById("s-deposit")) s.depositAmount=+document.getElementById("s-deposit").value||500;
+  if(document.getElementById("s-insurance")) s.insuranceAmount=+document.getElementById("s-insurance").value||0;
+  if(document.getElementById("s-pledge")) s.pledgeText=document.getElementById("s-pledge").value.trim();
   await store.setSettings(s);toast("تم حفظ الإعدادات");
 });
 document.getElementById("pass-form").addEventListener("submit",async e=>{

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ظ„ظˆط­ط© ط§ظ„طھط­ظƒظ… | ظ…ظ†طھط¬ط¹ط§طھ ظ…ط§ط±ط¨ظٹظ„ط§</title>
+  <title>لوحة التحكم | منتجعات ماربيلا</title>
   <meta name="robots" content="noindex,nofollow" />
   <meta name="theme-color" content="#0f1a20" />
   <link rel="icon" type="image/png" href="assets/images/logo.png" />
@@ -11,167 +11,176 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-  <link rel="stylesheet" href="css/admin.css?v=4" />
+  <link rel="stylesheet" href="css/admin.css?v=6" />
 </head>
 <body>
 
-  <!-- ط´ط§ط´ط© ط§ظ„ط¯ط®ظˆظ„ -->
+  <!-- شاشة الدخول -->
   <div id="login-view" class="login-wrap">
     <div class="login-card">
-      <img src="assets/images/logo.png" alt="ط´ط¹ط§ط± ظ…ط§ط±ط¨ظٹظ„ط§" class="login-logo" width="60" height="60" />
-      <h1>ظ„ظˆط­ط© طھط­ظƒظ… ظ…ط§ط±ط¨ظٹظ„ط§</h1>
-      <p>ط£ط¯ط®ظ„ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ظ„ظ„ظ…طھط§ط¨ط¹ط©</p>
+      <img src="assets/images/logo.png" alt="شعار ماربيلا" class="login-logo" width="60" height="60" />
+      <h1>لوحة تحكم ماربيلا</h1>
+      <p>أدخل كلمة المرور للمتابعة</p>
       <div class="login-error" id="login-error" role="alert"></div>
       <div class="login-info" id="login-info" role="status" aria-live="polite"></div>
       <form id="login-form">
-        <label for="admin-pass">ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±</label>
-        <input id="admin-pass" type="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" autocomplete="current-password" required />
-        <button type="submit" class="a-btn" style="width:100%;justify-content:center;margin-top:.6rem"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> ط¯ط®ظˆظ„</button>
+        <label for="admin-pass">كلمة المرور</label>
+        <input id="admin-pass" type="password" placeholder="••••••••" autocomplete="current-password" required />
+        <button type="submit" class="a-btn" style="width:100%;justify-content:center;margin-top:.6rem"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> دخول</button>
       </form>
-      <p class="login-hint">ط§ظ„ط¯ط®ظˆظ„ ط¹ط¨ط± ط­ط³ط§ط¨ ط§ظ„ط£ط¯ظ…ظ† ظپظٹ Firebase Authentication.</p>
-      <button type="button" class="link-reset" id="reset-pass-link">ظ†ط³ظٹطھ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±طں ط¥ط±ط³ط§ظ„ ط±ط§ط¨ط· ط§ظ„ط§ط³طھط¹ط§ط¯ط©</button>
+      <p class="login-hint">الدخول عبر حساب الأدمن في Firebase Authentication.</p>
+      <button type="button" class="link-reset" id="reset-pass-link">نسيت كلمة المرور؟ إرسال رابط الاستعادة</button>
     </div>
   </div>
 
-  <!-- ظ„ظˆط­ط© ط§ظ„طھط­ظƒظ… -->
+  <!-- لوحة التحكم -->
   <div id="admin-view" class="admin-layout" hidden>
     <aside class="sidebar">
       <div class="sidebar-brand">
         <img src="assets/images/logo.png" alt="" width="38" height="38" />
-        <div><strong>ظ…ط§ط±ط¨ظٹظ„ط§</strong><small>ظ„ظˆط­ط© ط§ظ„طھط­ظƒظ…</small></div>
+        <div><strong>ماربيلا</strong><small>لوحة التحكم</small></div>
       </div>
       <nav>
-        <div class="nav-item active" data-tab="dashboard"><i class="fa-solid fa-gauge" aria-hidden="true"></i> ظ„ظˆط­ط© ط§ظ„ظ…ط¹ظ„ظˆظ…ط§طھ</div>
-        <div class="nav-item" data-tab="dates"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i> ط§ظ„طھظˆط§ط±ظٹط® ط§ظ„ظ…ط­ط¬ظˆط²ط©</div>
-        <div class="nav-item" data-tab="units"><i class="fa-solid fa-house" aria-hidden="true"></i> ط§ظ„ط§ط³طھط±ط§ط­ط§طھ</div>
-        <div class="nav-item" data-tab="bookings"><i class="fa-solid fa-receipt" aria-hidden="true"></i> ط³ط¬ظ„ ط§ظ„ط­ط¬ظˆط²ط§طھ</div>
-        <div class="nav-item" data-tab="reviews"><i class="fa-solid fa-star" aria-hidden="true"></i> ط§ظ„طھظ‚ظٹظٹظ…ط§طھ</div>
-        <div class="nav-item" data-tab="settings"><i class="fa-solid fa-gear" aria-hidden="true"></i> ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ</div>
+        <div class="nav-item active" data-tab="dashboard"><i class="fa-solid fa-gauge" aria-hidden="true"></i> لوحة المعلومات</div>
+        <div class="nav-item" data-tab="dates"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i> التواريخ المحجوزة</div>
+        <div class="nav-item" data-tab="units"><i class="fa-solid fa-house" aria-hidden="true"></i> الاستراحات</div>
+        <div class="nav-item" data-tab="bookings"><i class="fa-solid fa-receipt" aria-hidden="true"></i> سجل الحجوزات</div>
+        <div class="nav-item" data-tab="reviews"><i class="fa-solid fa-star" aria-hidden="true"></i> التقييمات</div>
+        <div class="nav-item" data-tab="settings"><i class="fa-solid fa-gear" aria-hidden="true"></i> الإعدادات</div>
       </nav>
-      <div class="sidebar-foot">ط¥طµط¯ط§ط± 2.0 â€” Firebase</div>
+      <div class="sidebar-foot">إصدار 2.0 — Firebase</div>
     </aside>
 
     <div class="main-area">
       <div class="topbar-a">
-        <h2 id="page-title">ظ„ظˆط­ط© ط§ظ„ظ…ط¹ظ„ظˆظ…ط§طھ</h2>
-        <div class="user-chip"><i class="fa-solid fa-user-shield" aria-hidden="true"></i> ظ…ط¯ظٹط± <button class="btn-logout" id="logout-btn">ط®ط±ظˆط¬</button></div>
+        <h2 id="page-title">لوحة المعلومات</h2>
+        <div class="user-chip"><i class="fa-solid fa-user-shield" aria-hidden="true"></i> مدير <button class="btn-logout" id="logout-btn">خروج</button></div>
       </div>
 
       <!-- ===== Dashboard ===== -->
       <section class="section active" id="sec-dashboard">
         <div class="stat-cards" id="dash-stats"></div>
         <div class="chart-card">
-          <h3>ط§ظ„ط­ط¬ظˆط²ط§طھ ط­ط³ط¨ ط§ظ„ط§ط³طھط±ط§ط­ط©</h3>
+          <h3>الحجوزات حسب الاستراحة</h3>
           <div class="bar-chart" id="dash-chart"></div>
         </div>
         <div class="panel">
-          <div class="panel-head"><h3>ط£ط­ط¯ط« ط§ظ„ط­ط¬ظˆط²ط§طھ</h3></div>
+          <div class="panel-head"><h3>أحدث الحجوزات</h3></div>
           <div id="dash-recent"></div>
         </div>
       </section>
 
-      <!-- ===== ط§ظ„طھظˆط§ط±ظٹط® ط§ظ„ظ…ط­ط¬ظˆط²ط© ===== -->
+      <!-- ===== التواريخ المحجوزة ===== -->
       <section class="section" id="sec-dates">
         <div class="panel">
           <div class="panel-head">
-            <h3>ط¥ط¯ط§ط±ط© ط§ظ„طھظˆط§ط±ظٹط® ط§ظ„ظ…ط­ط¬ظˆط²ط©</h3>
+            <h3>إدارة التواريخ المحجوزة</h3>
             <div class="cal-unit-tabs" id="cal-unit-tabs"></div>
           </div>
-          <p style="color:var(--a-muted);font-size:.82rem;margin-bottom:.8rem">ط§ظ†ظ‚ط± ط¹ظ„ظ‰ ط£ظٹ ظٹظˆظ… ظ„طھط­ط¯ظٹط¯ظ‡/ط¥ظ„ط؛ط§ط، طھط­ط¯ظٹط¯ظ‡ ظƒظ…ط­ط¬ظˆط². ط§ظ„طھط؛ظٹظٹط±ط§طھ طھظ†ط¹ظƒط³ ظ…ط¨ط§ط´ط±ط© ط¹ظ„ظ‰ ط§ظ„طھظ‚ظˆظٹظ… ظپظٹ ط§ظ„ظ…ظˆظ‚ط¹.</p>
+          <p style="color:var(--a-muted);font-size:.82rem;margin-bottom:.8rem">انقر على أي يوم لتحديده/إلغاء تحديده كمحجوز. التغييرات تنعكس مباشرة على التقويم في الموقع.</p>
           <div id="admin-calendar"></div>
           <div style="display:flex;gap:.5rem;margin-top:1rem;align-items:center;flex-wrap:wrap">
-            <button class="a-btn ghost" id="cal-prev"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i> ط§ظ„ط³ط§ط¨ظ‚</button>
+            <button class="a-btn ghost" id="cal-prev"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i> السابق</button>
             <strong id="cal-month" style="min-width:140px;text-align:center"></strong>
-            <button class="a-btn ghost" id="cal-next">ط§ظ„طھط§ظ„ظٹ <i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+            <button class="a-btn ghost" id="cal-next">التالي <i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
           </div>
         </div>
       </section>
 
-      <!-- ===== ط§ظ„ط§ط³طھط±ط§ط­ط§طھ ===== -->
+      <!-- ===== الاستراحات ===== -->
       <section class="section" id="sec-units">
         <div class="panel">
-          <div class="panel-head"><h3>ط¨ظٹط§ظ†ط§طھ ط§ظ„ط§ط³طھط±ط§ط­ط§طھ</h3></div>
+          <div class="panel-head"><h3>بيانات الاستراحات</h3></div>
           <div id="units-editor"></div>
         </div>
       </section>
 
-      <!-- ===== ط³ط¬ظ„ ط§ظ„ط­ط¬ظˆط²ط§طھ ===== -->
+      <!-- ===== سجل الحجوزات ===== -->
       <section class="section" id="sec-bookings">
         <div class="panel">
           <div class="panel-head">
-            <h3>ط³ط¬ظ„ ط§ظ„ط­ط¬ظˆط²ط§طھ</h3>
+            <h3>سجل الحجوزات</h3>
             <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap">
-              <div class="search-box"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="bk-search" type="search" placeholder="ط¨ط­ط« ط¨ط§ظ„ط§ط³ظ…/ط§ظ„ظ‡ط§طھظپ..." /></div>
-              <button class="a-btn ghost" id="export-csv"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> طھطµط¯ظٹط± CSV</button>
+              <div class="search-box"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="bk-search" type="search" placeholder="بحث بالاسم/الهاتف..." /></div>
+              <button class="a-btn ghost" id="export-csv"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> تصدير CSV</button>
             </div>
           </div>
           <div id="bookings-table"></div>
         </div>
       </section>
 
-      <!-- ===== ط§ظ„طھظ‚ظٹظٹظ…ط§طھ ===== -->
+      <!-- ===== التقييمات ===== -->
       <section class="section" id="sec-reviews">
         <div class="panel">
           <div class="panel-head">
-            <h3>طھظ‚ظٹظٹظ…ط§طھ ط§ظ„ط¶ظٹظˆظپ</h3>
-            <button class="a-btn ghost" id="reviews-refresh"><i class="fa-solid fa-rotate" aria-hidden="true"></i> طھط­ط¯ظٹط«</button>
+            <h3>تقييمات الضيوف</h3>
+            <button class="a-btn ghost" id="reviews-refresh"><i class="fa-solid fa-rotate" aria-hidden="true"></i> تحديث</button>
           </div>
           <div id="reviews-table"></div>
         </div>
       </section>
 
-      <!-- ===== ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ ===== -->
+      <!-- ===== الإعدادات ===== -->
       <section class="section" id="sec-settings">
         <div class="panel" style="max-width:640px">
-          <div class="panel-head"><h3>ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط¹ط§ظ…ط©</h3></div>
+          <div class="panel-head"><h3>الإعدادات العامة</h3></div>
           <form id="settings-form">
             <div class="a-row">
-              <div class="a-field"><label>ط§ط³ظ… ط§ظ„ط¹ظ„ط§ظ…ط©</label><input id="s-brand" type="text" /></div>
-              <div class="a-field"><label>ط±ظ‚ظ… ط§ظ„ظˆط§طھط³ط§ط¨ (ط¯ظˆظ„ظٹ)</label><input id="s-wa" type="text" /></div>
+              <div class="a-field"><label>اسم العلامة</label><input id="s-brand" type="text" /></div>
+              <div class="a-field"><label>رقم الواتساب (دولي)</label><input id="s-wa" type="text" /></div>
             </div>
             <div class="a-row">
-              <div class="a-field"><label>ط±ظ‚ظ… ط§ظ„ط¹ط±ط¶</label><input id="s-phone" type="text" /></div>
-              <div class="a-field"><label>ط§ظ„ظ…ظ†ط·ظ‚ط©</label><input id="s-area" type="text" /></div>
+              <div class="a-field"><label>رقم العرض</label><input id="s-phone" type="text" /></div>
+              <div class="a-field"><label>المنطقة</label><input id="s-area" type="text" /></div>
             </div>
             <div class="a-row">
-              <div class="a-field"><label>ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ</label><input id="s-email" type="email" /></div>
-              <div class="a-field"><label>ط±ظ‚ظ… ط§ظ„ط­ط³ط§ط¨ ط§ظ„ط¨ظ†ظƒظٹ (ط¹ط±ط¨ظˆظ†)</label><input id="s-bank" type="text" /></div>
+              <div class="a-field"><label>البريد الإلكتروني</label><input id="s-email" type="email" /></div>
+              <div class="a-field"><label>رقم الحساب البنكي (عربون)</label><input id="s-bank" type="text" /></div>
             </div>
             <div class="a-row">
-              <div class="a-field"><label>ط§ظ†ط³طھط؛ط±ط§ظ…</label><input id="s-ig" type="url" /></div>
-              <div class="a-field"><label>طھظٹظƒ طھظˆظƒ</label><input id="s-tk" type="url" /></div>
+              <div class="a-field"><label>انستغرام</label><input id="s-ig" type="url" /></div>
+              <div class="a-field"><label>تيك توك</label><input id="s-tk" type="url" /></div>
             </div>
-            <div class="a-field"><label>ظ…ط³ط§ط± ط§ظ„ظ„ظˆط¬ظˆ (Logo Path)</label><input id="s-logo" type="text" placeholder="assets/images/logo.png" /></div>
+
+            <!-- ===== أسعار العربون والتأمين ===== -->
+            <div class="settings-section-title"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> العربون والتأمين</div>
+            <div class="a-row">
+              <div class="a-field"><label>مبلغ العربون (درهم)</label><input id="s-deposit" type="number" min="0" placeholder="500" /></div>
+              <div class="a-field"><label>مبلغ التأمين (درهم)</label><input id="s-insurance" type="number" min="0" placeholder="0" /></div>
+            </div>
+            <div class="a-field"><label>نص التعهد</label><textarea id="s-pledge" rows="2" placeholder="أتعهد بعدم تغيير لون مياه المسبح أو إفسادها..."></textarea></div>
+
+            <div class="a-field"><label>مسار اللوجو (Logo Path)</label><input id="s-logo" type="text" placeholder="assets/images/logo.png" /></div>
             <div class="a-field">
-              <label>ظ…ظپطھط§ط­ ImgBB API (ظ„ط±ظپط¹ ط§ظ„طµظˆط±)</label>
-              <input id="s-imgbb" type="text" placeholder="ط¶ط¹ ظ…ظپطھط§ط­ظƒ ظ…ظ† imgbb.com/api" autocomplete="off" />
-              <small style="color:var(--a-muted);font-size:.75rem;display:block;margin-top:.25rem">ط§ط­طµظ„ ط¹ظ„ظ‰ ظ…ظپطھط§ط­ ظ…ط¬ط§ظ†ظٹ ظ…ظ† <a href="https://api.imgbb.com/" target="_blank" rel="noopener">api.imgbb.com</a> â€” ظٹظڈط³طھط®ط¯ظ… ظ„ط±ظپط¹ طµظˆط± ط§ظ„ط§ط³طھط±ط§ط­ط§طھ ط¨ط¯ظ„ Firebase Storage.</small>
+              <label>مفتاح ImgBB API (لرفع الصور)</label>
+              <input id="s-imgbb" type="text" placeholder="ضع مفتاحك من imgbb.com/api" autocomplete="off" />
+              <small style="color:var(--a-muted);font-size:.75rem;display:block;margin-top:.25rem">احصل على مفتاح مجاني من <a href="https://api.imgbb.com/" target="_blank" rel="noopener">api.imgbb.com</a> — يُستخدم لرفع صور الاستراحات بدل Firebase Storage.</small>
             </div>
-            <div class="a-field"><label>ط±ط³ط§ظ„ط© ط§ظ„طھط±ط­ظٹط¨</label><textarea id="s-intro" rows="2"></textarea></div>
-            <button type="submit" class="a-btn"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> ط­ظپط¸ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ</button>
+            <div class="a-field"><label>رسالة الترحيب</label><textarea id="s-intro" rows="2"></textarea></div>
+            <button type="submit" class="a-btn"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> حفظ الإعدادات</button>
           </form>
         </div>
         <div class="panel" style="max-width:640px;margin-top:1.6rem">
-          <div class="panel-head"><h3>ط§ظ„ط£ظ…ط§ظ†</h3></div>
+          <div class="panel-head"><h3>الأمان</h3></div>
           <form id="pass-form">
             <div class="a-row">
-              <div class="a-field"><label>ظƒظ„ظ…ط© ظ…ط±ظˆط± ط¬ط¯ظٹط¯ط©</label><input id="new-pass" type="password" autocomplete="new-password" /></div>
-              <div class="a-field"><label>طھط£ظƒظٹط¯ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±</label><input id="new-pass2" type="password" autocomplete="new-password" /></div>
+              <div class="a-field"><label>كلمة مرور جديدة</label><input id="new-pass" type="password" autocomplete="new-password" /></div>
+              <div class="a-field"><label>تأكيد كلمة المرور</label><input id="new-pass2" type="password" autocomplete="new-password" /></div>
             </div>
-            <button type="submit" class="a-btn"><i class="fa-solid fa-key" aria-hidden="true"></i> طھط؛ظٹظٹط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±</button>
+            <button type="submit" class="a-btn"><i class="fa-solid fa-key" aria-hidden="true"></i> تغيير كلمة المرور</button>
           </form>
         </div>
         <div class="panel" style="max-width:640px;margin-top:1.6rem">
-          <div class="panel-head"><h3>ظ…ظ†ط·ظ‚ط© ط§ظ„ط®ط·ط±</h3></div>
-          <p style="color:var(--a-muted);font-size:.85rem;margin-bottom:.8rem">ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† ظƒظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ (ط§ظ„ط­ط¬ظˆط²ط§طھطŒ ط§ظ„طھظˆط§ط±ظٹط®طŒ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ) ط¥ظ„ظ‰ ط§ظ„ظˆط¶ط¹ ط§ظ„ط§ظپطھط±ط§ط¶ظٹ.</p>
-          <button class="a-btn danger" id="reset-all"><i class="fa-solid fa-trash-can" aria-hidden="true"></i> ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† ط§ظ„ظƒظ„</button>
+          <div class="panel-head"><h3>منطقة الخطر</h3></div>
+          <p style="color:var(--a-muted);font-size:.85rem;margin-bottom:.8rem">إعادة تعيين كل البيانات (الحجوزات، التواريخ، الإعدادات) إلى الوضع الافتراضي.</p>
+          <button class="a-btn danger" id="reset-all"><i class="fa-solid fa-trash-can" aria-hidden="true"></i> إعادة تعيين الكل</button>
         </div>
       </section>
     </div>
   </div>
 
-    <!-- Firebase (ظ…ظڈط±ظƒظژظ‘ط² ط¹ط¨ط± firebase-loader.js) -->
+  <!-- Firebase (مُركَّز عبر firebase-loader.js) -->
   <script src="js/firebase-loader.js?v=9"></script>
-  <script src="js/admin.js?v=4"></script>
+  <script src="js/admin.js?v=7"></script>
 </body>
 </html>
