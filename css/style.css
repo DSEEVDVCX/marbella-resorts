@@ -617,29 +617,6 @@ section[id],main[id]{scroll-margin-top:90px}
 .lang-toggle:hover{background:var(--brass);border-color:var(--brass);color:var(--night)}
 .lang-toggle:active{transform:scale(.94)}
 
-/* Section Switcher */
-.section-switcher {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-.sec-btn {
-  background: var(--line);
-  color: var(--ink);
-  border: none;
-  padding: 0.6rem 1.5rem;
-  border-radius: 2rem;
-  font-family: inherit;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--trans-fast);
-}
-.sec-btn.active, .sec-btn:hover {
-  background: var(--brass);
-  color: var(--sand);
-}
-
 /* Numeric Amenities Badges */
 .numeric-amenities {
   display: flex;

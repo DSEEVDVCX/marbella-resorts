@@ -83,16 +83,6 @@ function isSameDay(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()==
 function initSettings(){
   initShell();
   
-  // Section switcher
-  document.querySelectorAll(".sec-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".sec-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      unitFilters.section = btn.dataset.section;
-      renderUnits();
-    });
-  });
-  
   // Re-render on language change
   window.addEventListener("languageChanged", () => {
     renderUnits();
@@ -106,9 +96,6 @@ function clearFilters(){
   const s = document.getElementById("filter-search"); if(s) s.value="";
   const so = document.getElementById("filter-sort"); if(so) so.value="default";
   document.querySelectorAll(".fb-chip").forEach(c=>c.setAttribute("aria-pressed","false"));
-  document.querySelectorAll(".sec-btn").forEach(b=>b.classList.remove("active"));
-  const defSec = document.querySelector(".sec-btn[data-section='all']");
-  if(defSec) defSec.classList.add("active");
   renderUnits();
 }
 
