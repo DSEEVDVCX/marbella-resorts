@@ -309,14 +309,60 @@ if(!window.MarbellaStore){
       if(!window.db) return [];
       const snap = await db.collection("reviews").where("unitId","==",unitId).get();
       const rs = [];
-      snap.forEach(d => rs.push(d.data()));
+      snap.forEach(d => { const data = d.data(); data.id = d.id; rs.push(data); });
       return rs;
+    },
+    async getAllReviews(){
+      if(!window.db) return [];
+      try{
+        const snap = await db.collection("reviews").get();
+        const rs = [];
+        snap.forEach(d => { const data = d.data(); data.id = d.id; rs.push(data); });
+        rs.sort((a,b)=> String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
+        return rs;
+      }catch(e){ console.error("getAllReviews failed", e); return []; }
     },
     async addReview(unitId, review){
       if(!window.db) return;
       review.unitId = unitId;
       review.createdAt = new Date().toISOString();
       await db.collection("reviews").add(review);
+    },
+    async deleteReview(id){
+      if(!window.db) return;
+      await db.collection("reviews").doc(id).delete();
+    },
+
+    /* ===== رفع/حذف صور الاستراحات (Firebase Storage) ===== */
+    // رفع ملف إلى units/{unitId}/{timestamp}-{filename} وإرجاع رابط التنزيل
+    uploadImage(file, unitId, onProgress){
+      return new Promise((resolve, reject)=>{
+        if(!window.storage){ reject(new Error("Storage غير مُهيّأ")); return; }
+        if(!file){ reject(new Error("لم يُحدّد ملف")); return; }
+        const safeName = (file.name||"image").replace(/[^\w.\-]+/g,"_");
+        const path = `units/${unitId}/${Date.now()}-${safeName}`;
+        const ref = storage.ref(path);
+        const task = ref.put(file, { contentType: file.type || "image/*" });
+        if(typeof onProgress === "function"){
+          task.on("state_changed",
+            snap => {
+              const pct = snap.totalBytes ? Math.round((snap.bytesTransferred/snap.totalBytes)*100) : 0;
+              onProgress(pct);
+            },
+            reject
+          );
+        }
+        task.then(() => ref.getDownloadURL())
+            .then(url => resolve({ url, path }))
+            .catch(reject);
+      });
+    },
+    async deleteImage(url){
+      if(!window.storage || !url) return;
+      try{
+        // refFromURL يدعم روابط التنزيل القياسية لـ Firebase Storage
+        await storage.refFromURL(url).delete();
+      }catch(e){ console.warn("deleteImage failed", e); }
     },
 
     /* ===== إعادة التعيين الكامل (لوحة التحكم) ===== */

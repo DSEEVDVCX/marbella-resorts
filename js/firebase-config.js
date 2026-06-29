@@ -20,6 +20,7 @@ if (!firebase.apps.length) {
 }
 window.db = firebase.firestore();
 window.auth = firebase.auth();
+window.storage = firebase.storage();
 
 // تفعيل التخزين المؤقت المحلي (offline persistence) لتفادي إعادة جلب الإعدادات/الاستراحات
 // مع كل تنقّل بين الصفحات. نستخدم الوضع أحادي التبويب (الوحيد غير المُهمَل في compat SDK)؛

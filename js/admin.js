@@ -65,6 +65,7 @@ auth.onAuthStateChanged(async (user) => {
   if(user && user.email === _ADMIN_EMAIL){
     await store.initData();     // تحميل الإعدادات والاستراحات من Firestore
     cachedBookings = await store.getBookings();
+    await loadReviews();        // تحميل التقييمات
     if(_bookingsUnsub){ _bookingsUnsub(); _bookingsUnsub = null; }
     // اشتراك لحظي على الحجوزات لتحديث اللوحة عند وصول حجوزات جديدة
     if(window.db){
@@ -97,7 +98,7 @@ document.querySelectorAll(".nav-item").forEach(item=>{
     const tab=item.dataset.tab;
     document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
     document.getElementById("sec-"+tab).classList.add("active");
-    const titles={dashboard:"لوحة المعلومات",dates:"التواريخ المحجوزة",units:"بيانات الاستراحات",bookings:"سجل الحجوزات",settings:"الإعدادات"};
+    const titles={dashboard:"لوحة المعلومات",dates:"التواريخ المحجوزة",units:"بيانات الاستراحات",bookings:"سجل الحجوزات",reviews:"تقييمات الضيوف",settings:"الإعدادات"};
     document.getElementById("page-title").textContent=titles[tab];
   });
 });
@@ -211,12 +212,66 @@ function editUnit(id){
       <div class="a-field"><label>دورات المياه</label><input id="e-baths" value="${esc(u.baths)}"/></div>
     </div>
     <div class="a-field"><label>المميزات (افصل بفاصلة)</label><textarea id="e-feat" rows="2">${esc(u.features.join("، "))}</textarea></div>
+
+    <div class="e-gallery">
+      <label>صور الاستراحة</label>
+      <div class="e-gallery-grid" id="e-gallery">
+        ${(u.images||[]).map((src,i)=>`<div class="e-thumb" data-src="${esc(src)}">
+          <img src="${esc(src)}" alt="صورة ${i+1}" loading="lazy"/>
+          <button type="button" class="e-thumb-del" data-del="${i}" aria-label="حذف الصورة"><i class="fa-solid fa-xmark"></i></button>
+        </div>`).join("")}
+      </div>
+      <div class="e-upload">
+        <input type="file" id="e-img-input" accept="image/*" hidden />
+        <button type="button" class="a-btn ghost" id="e-img-pick"><i class="fa-solid fa-cloud-arrow-up"></i> رفع صورة</button>
+        <span class="e-upload-progress" id="e-img-progress"></span>
+      </div>
+    </div>
+
     <div style="display:flex;gap:.5rem;margin-top:.6rem">
       <button class="a-btn" id="e-save"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>
       <button class="a-btn ghost" id="e-cancel">إلغاء</button>
     </div></div>`;
   document.body.appendChild(wrap);
   wrap.querySelector("#e-cancel").addEventListener("click",()=>wrap.remove());
+
+  // ===== إدارة صور الاستراحة =====
+  const galleryEl = wrap.querySelector("#e-gallery");
+  galleryEl.addEventListener("click", async (ev)=>{
+    const delBtn = ev.target.closest(".e-thumb-del");
+    if(!delBtn) return;
+    const idx = +delBtn.dataset.del;
+    const removedUrl = u.images[idx];
+    if(!confirm("حذف هذه الصورة من الاستراحة؟")) return;
+    u.images.splice(idx,1);
+    await store.setUnits(units);            // حدّث Firestore أولاً
+    await store.deleteImage(removedUrl);   // ثم احذف الملف من Storage
+    toast("تم حذف الصورة");
+    // أعد فتح النافذة لتعكس الحالة الجديدة
+    wrap.remove(); editUnit(id);
+  });
+
+  const fileInput = wrap.querySelector("#e-img-input");
+  const progressEl = wrap.querySelector("#e-img-progress");
+  wrap.querySelector("#e-img-pick").addEventListener("click",()=>fileInput.click());
+  fileInput.addEventListener("change", async ()=>{
+    const file = fileInput.files && fileInput.files[0];
+    if(!file) return;
+    progressEl.textContent = "جاري الرفع 0%";
+    try{
+      const { url } = await store.uploadImage(file, u.id, pct => { progressEl.textContent = `جاري الرفع ${pct}%`; });
+      u.images.push(url);
+      await store.setUnits(units);
+      progressEl.textContent = "";
+      toast("تم رفع الصورة");
+      wrap.remove(); editUnit(id);
+    }catch(e){
+      console.error(e);
+      progressEl.textContent = "";
+      toast("تعذّر رفع الصورة — تحقّق من قواعد Storage", true);
+    }
+  });
+
   wrap.querySelector("#e-save").addEventListener("click",async ()=>{
     u.name=wrap.querySelector("#e-name").value.trim()||u.name;
     u.tagline=wrap.querySelector("#e-tag").value.trim();
@@ -335,6 +390,45 @@ document.getElementById("reset-all").addEventListener("click",async ()=>{
   }
 });
 
+/* ===== التقييمات ===== */
+let cachedReviews = [];
+async function loadReviews(){ cachedReviews = await store.getAllReviews(); }
+
+function renderReviews(){
+  const list = cachedReviews.slice();
+  const wrap = document.getElementById("reviews-table");
+  if(!wrap) return;
+  const units = store.getUnits();
+  const unitName = id => { const u = units.find(x=>x.id===id); return u ? u.name : "—"; };
+  wrap.innerHTML = list.length ? `
+    <table class="tbl"><thead><tr><th>الاستراحة</th><th>الاسم</th><th>التقييم</th><th>التعليق</th><th>التاريخ</th><th>إجراءات</th></tr></thead><tbody>
+    ${list.map(r=>{
+      const stars = "★".repeat(r.rating||0) + "☆".repeat(5-(r.rating||0));
+      const date = r.createdAt ? new Date(r.createdAt).toLocaleDateString("ar") : "—";
+      return `<tr>
+        <td>${esc(unitName(r.unitId))}</td>
+        <td>${esc(r.name)}</td>
+        <td><span class="rev-stars">${stars}</span></td>
+        <td class="rev-text-cell">${esc(r.text)}</td>
+        <td>${date}</td>
+        <td><button class="icon-btn del" data-rev-del="${esc(r.id)}" title="حذف"><i class="fa-solid fa-trash"></i></button></td>
+      </tr>`;
+    }).join("")}
+    </tbody></table>` : `<div class="tbl-empty">لا توجد تقييمات بعد</div>`;
+
+  wrap.querySelectorAll("[data-rev-del]").forEach(b=>b.addEventListener("click", async ()=>{
+    if(!confirm("حذف هذا التقييم نهائياً؟")) return;
+    try{
+      await store.deleteReview(b.dataset.revDel);
+      cachedReviews = cachedReviews.filter(x=>x.id!==b.dataset.revDel);
+      renderReviews(); toast("تم حذف التقييم");
+    }catch(e){ toast("تعذّر حذف التقييم", true); }
+  }));
+}
+document.getElementById("reviews-refresh")?.addEventListener("click", async ()=>{
+  await loadReviews(); renderReviews(); toast("تم تحديث التقييمات");
+});
+
 /* ===== تشغيل ===== */
 async function renderAll(){
   renderDashboard();
@@ -342,5 +436,6 @@ async function renderAll(){
   renderAdminCalendar();
   renderUnitsEditor();
   renderBookings();
+  renderReviews();
   renderSettings();
 }

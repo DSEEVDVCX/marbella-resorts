@@ -56,6 +56,7 @@ python -m http.server 8000
    - **Anonymous** (مطلوب لـ: تفضيلات الزوار الثيم/اللغة/المفضّلة **وإرسال الحجوزات والتقييمات**). إذا عطّلته، فلن تُحفظ الحجوزات في Firestore ولن يراها الأدمن رغم إرسالها عبر واتساب.
 3. **Authentication ← Users** أنشئ مستخدماً ببريد وكلمة مرور. يجب أن يطابق البريد قيمة `ADMIN_EMAIL` في `js/firebase-config.js` (الافتراضي `admin@marbella-resorts.com` — عدّله إلى بريد تملكه إن أردت استعادة كلمة المرور لاحقاً).
 4. **Firestore Database** أنشئ قاعدة البيانات. ستُزرع الإعدادات والاستراحات تلقائياً عند أول تشغيل.
+5. **Storage** فعّل Firebase Storage (لرفع صور الاستراحات من لوحة التحكم). الدلو مُعدّ مسبقاً في `firebaseConfig.storageBucket`. طبّق قواعد Storage أدناه.
 
 ### مجموعات Firestore المستخدمة
 | المجموعة | الوثيقة | الغرض |
@@ -133,6 +134,23 @@ service cloud.firestore {
 ```
 > ملاحظة: عند جعل كتابة `units` للأدمن فقط، لن تُحدّث الإعجابات/التواريخ تلقائياً من الموقع (وهو الأأمن). يمكن للأدمن إدارة التواريخ المحجوزة من لوحة التحكم.
 
+### قواعد أمان Firebase Storage (مطلوبة لرفع/حذف الصور)
+الصور تُرفع إلى `gs://marbella-resorts.firebasestorage.app/units/{unitId}/...` ويُديرها الأدمن فقط.
+في **Firebase Console ← Storage ← Rules** طبّق:
+```
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /units/{allPaths=**} {
+      allow read: if true;                        // قراءة عامة (عرض الصور للزوار)
+      allow write: if request.auth != null
+        && request.auth.token.email == 'admin@marbella-resorts.com';  // رفع/حذف للأدمن فقط
+    }
+  }
+}
+```
+> بدون هذه القواعد سيرفض الرفع بخطأ `permission-denied`. القراءة عامة لتظهر الصور للزوار.
+
 ## التخصيص
 - لتعديل الإعدادات والاستراحات بسرعة: `js/data.js` يحتوي المصفوفات الافتراضية (`SETTINGS`, `UNITS`) التي تُزرع في Firestore عند أول تشغيل. بعدها تُدار البيانات من لوحة التحكم.
 - لتغيير الشعار: استبدل `assets/images/logo.png`.
@@ -140,6 +158,8 @@ service cloud.firestore {
 ## لوحة التحكم
 افتح `admin.html`. الدخول عبر حساب الأدمن (Email/Password) في Firebase Authentication.
 - إدارة التواريخ المحجوزة، تعديل الأسعار والأوصاف، سجل الحجوزات، تصدير CSV، الإعدادات العامة، تغيير كلمة المرور.
+- عرض وحذف تقييمات الضيوف (قسم «التقييمات»).
+- رفع/حذف صور الاستراحات إلى Firebase Storage من نافذة تعديل الاستراحة.
 - «نسيت كلمة المرور؟» يرسل رابط استعادة عبر البريد المسجّل في `ADMIN_EMAIL`.
 
 ## النشر

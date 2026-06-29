@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-  <link rel="stylesheet" href="css/admin.css" />
+  <link rel="stylesheet" href="css/admin.css?v=3" />
 </head>
 <body>
 
@@ -45,6 +45,7 @@
         <div class="nav-item" data-tab="dates"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i> التواريخ المحجوزة</div>
         <div class="nav-item" data-tab="units"><i class="fa-solid fa-house" aria-hidden="true"></i> الاستراحات</div>
         <div class="nav-item" data-tab="bookings"><i class="fa-solid fa-receipt" aria-hidden="true"></i> سجل الحجوزات</div>
+        <div class="nav-item" data-tab="reviews"><i class="fa-solid fa-star" aria-hidden="true"></i> التقييمات</div>
         <div class="nav-item" data-tab="settings"><i class="fa-solid fa-gear" aria-hidden="true"></i> الإعدادات</div>
       </nav>
       <div class="sidebar-foot">إصدار 2.0 — Firebase</div>
@@ -108,6 +109,17 @@
         </div>
       </section>
 
+      <!-- ===== التقييمات ===== -->
+      <section class="section" id="sec-reviews">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>تقييمات الضيوف</h3>
+            <button class="a-btn ghost" id="reviews-refresh"><i class="fa-solid fa-rotate" aria-hidden="true"></i> تحديث</button>
+          </div>
+          <div id="reviews-table"></div>
+        </div>
+      </section>
+
       <!-- ===== الإعدادات ===== -->
       <section class="section" id="sec-settings">
         <div class="panel" style="max-width:640px">
@@ -154,7 +166,7 @@
   </div>
 
     <!-- Firebase (مُركَّز عبر firebase-loader.js) -->
-  <script src="js/firebase-loader.js?v=2"></script>
+  <script src="js/firebase-loader.js?v=3"></script>
   <script src="js/admin.js?v=3"></script>
 </body>
 </html>
