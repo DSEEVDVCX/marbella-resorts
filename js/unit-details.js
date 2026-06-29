@@ -14,20 +14,21 @@ bootstrapPage(async () => {
 
   const isEn = typeof currentLang !== "undefined" && currentLang === "en";
   const name = isEn ? (unit.nameEn || unit.name) : unit.name;
-  const features=unit.features.map(f=>`<span class="chip"><i class="fa-solid fa-check" aria-hidden="true"></i>${esc(f)}</span>`).join("");
-  const gallery=unit.images.map((src,i)=>`<figure class="dg-thumb"><img src="${esc(src)}" alt="صورة ${esc(name)} ${i+1}" loading="lazy" data-idx="${i}"/></figure>`).join("");
+  const features=(unit.features||[]).map(f=>`<span class="chip"><i class="fa-solid fa-check" aria-hidden="true"></i>${esc(f)}</span>`).join("");
+  const gallery=(unit.images||[]).map((src,i)=>`<figure class="dg-thumb"><img src="${esc(src)}" alt="صورة ${esc(name)} ${i+1}" loading="lazy" data-idx="${i}"/></figure>`).join("");
   const similar=UNITS.filter(u=>u.id!==unit.id).map(u=>`
     <a class="sim-card" href="unit-details.html?id=${u.id}">
-      <img src="${esc(u.images[0])}" alt="${esc(u.name)}" loading="lazy" width="200" height="140"/>
+      <img src="${esc((u.images||[])[0]||'')}" alt="${esc(u.name)}" loading="lazy" width="200" height="140"/>
       <span class="sim-name">${esc(u.name)}</span>
       <span class="sim-price">${esc(u.price)} ${esc(u.currency)}</span>
     </a>`).join("");
 
+  const mainImgSrc = (unit.images && unit.images.length) ? unit.images[0] : '';
   $("detail-content").innerHTML=`
     <div class="detail-grid">
       <div class="detail-main">
         <div class="detail-gallery reveal">
-          <figure class="dg-main"><img src="${esc(unit.images[0])}" alt="${esc(name)}" id="dg-main-img" data-idx="0"/></figure>
+          <figure class="dg-main"><img src="${esc(mainImgSrc)}" alt="${esc(name)}" id="dg-main-img" data-idx="0"/></figure>
           <div class="dg-thumbs">${gallery}</div>
         </div>
         <div class="detail-specs reveal" data-delay="1">
