@@ -9,13 +9,17 @@ let selectedDate = null;   // التاريخ المختار من المستخد�
 let stayType = "night";     // نوع الحجز: "night" (مع مبيت) أو "day" (نهاري)
 
 /* ===== أسعار نوع الحجز =====
-   كل سعر رقم صريح يُحدّد من لوحة التحكم (لا نسب مئوية). */
-function getStayPrice(unit){
-  if(stayType === "day") return unit.dayPrice || unit.price;
-  return unit.price;
+   كل سعر رقم صريح يُحدّد من لوحة التحكم (لا نسب مئوية).
+   4 أسعار لكل استراحة: مبيت/نهاري × أيام الأسبوع/ويكند (الجمعة والسبت).
+   isWeekendDate/unitPriceFor مُعرّفتان في data.js (مصدر مشترك). */
+function getStayPrice(unit, date){
+  return unitPriceFor(unit, stayType, isWeekendDate(date || selectedDate));
 }
 function getStayLabel(){
   return stayType === "day" ? "نهاري (بدون مبيت)" : "مع مبيت";
+}
+function getPeriodLabel(weekend){
+  return weekend ? "ويكند (جمعة/سبت)" : "أيام الأسبوع";
 }
 
 /* ===== حالة الفلاتر ===== */
@@ -131,11 +135,22 @@ function renderUnits(filterFn){
     const features = featsList.map(f=>`<span class="chip"><i class="fa-solid fa-check"></i>${esc(f)}</span>`).join("");
     const dots = imgs.map((_,i)=>`<span${i===0?' class="active"':''}></span>`).join("");
     const fav = store && store.isFavorite(u.id);
-    const dayPrice = u.dayPrice || u.price;
-    const priceHTML = u.dayPrice && u.dayPrice !== u.price
-      ? `<span class="price-night">${esc(u.price)} <small>${esc(currency)} ${tr("unit-night")}</small></span>
-         <span class="price-day">${esc(dayPrice)} <small>${esc(currency)} ${tr("stay-day")}</small></span>`
-      : `<span class="unit-price">${esc(u.price)} <small>${esc(currency)} ${tr("unit-night")}</small></span>`;
+    const night = u.price;
+    const day = u.dayPrice || u.price;
+    const wNight = u.weekendPrice || u.price;
+    const wDay = u.weekendDayPrice || u.dayPrice || u.price;
+    const hasDay = u.dayPrice && u.dayPrice !== u.price;
+    const hasWeekend = (wNight !== night) || (wDay !== day);
+    let priceHTML = "";
+    if(hasDay){
+      priceHTML += `<span class="price-night">${esc(night)} <small>${esc(currency)} ${tr("unit-night")}</small></span>`;
+      priceHTML += `<span class="price-day">${esc(day)} <small>${esc(currency)} ${tr("stay-day")}</small></span>`;
+    } else {
+      priceHTML += `<span class="unit-price">${esc(night)} <small>${esc(currency)} ${tr("unit-night")}</small></span>`;
+    }
+    if(hasWeekend){
+      priceHTML += `<span class="price-weekend"><i class="fa-solid fa-umbrella-beach" aria-hidden="true"></i> ${tr("weekend")}: ${esc(wNight)} <small>${esc(currency)}</small></span>`;
+    }
     
     return `
     <article class="unit-card">
@@ -371,7 +386,7 @@ function renderCalendar(){
       <button id="cal-next" aria-label="الشهر التالي"><i class="fa-solid fa-chevron-left"></i></button>
     </div><div class="cal-grid">`;
 
-  AR_DOW.forEach(d=> html += `<div class="cal-dow">${d}</div>`);
+  AR_DOW.forEach((d,i)=> html += `<div class="cal-dow${(i===5||i===6)?' cal-dow-weekend':''}">${d}</div>`);
 
   for(let i=0;i<startDay;i++) html += `<div class="cal-day empty"></div>`;
 
@@ -383,10 +398,12 @@ function renderCalendar(){
     const isPast = date < today;
     const isBooked = booked.includes(iso);
     const isSelected = selectedDate && isSameDay(date,selectedDate);
+    const isWeekend = isWeekendDate(date);
     let cls = "cal-day ";
     if(isPast)        cls += "past";
     else if(isBooked) cls += "booked";
     else              cls += isSelected ? "selected" : "free";
+    if(isWeekend && !isPast && !isBooked && !isSelected) cls += " weekend";
     const dis = (isPast||isBooked) ? 'aria-disabled="true"' : "";
     html += `<div class="${cls}" data-date="${iso}" ${dis}>${d}</div>`;
   }
@@ -408,6 +425,7 @@ function renderCalendar(){
   });
 
   updateSummary();
+  updateBookingSub();
 }
 
 /* ===== ملخص الحجز (التاريخ المختار) ===== */
@@ -503,14 +521,22 @@ function openBooking(unitId){
 }
 
 function updateBookingSub(){
-  const night = currentUnit.price;
-  const day = currentUnit.dayPrice || currentUnit.price;
+  if(!currentUnit) return;
   const cur = currentUnit.currency;
   const sub = document.getElementById("modal-sub");
-  if(day !== night){
-    sub.innerHTML = `🌙 مبيت: <strong>${night} ${esc(cur)}</strong> &nbsp;|&nbsp; ☀️ نهاري: <strong>${day} ${esc(cur)}</strong>`;
+  if(!sub) return;
+  if(selectedDate){
+    const weekend = isWeekendDate(selectedDate);
+    const price = unitPriceFor(currentUnit, stayType, weekend);
+    const stayLbl = stayType === "day" ? "نهاري" : "مبيت";
+    sub.innerHTML = `<i class="fa-solid fa-tag" aria-hidden="true"></i> ${getPeriodLabel(weekend)} — ${stayLbl}: <strong>${price} ${esc(cur)}</strong>`;
   } else {
-    sub.textContent = `${night} ${cur} — ${currentUnit.tagline}`;
+    const night = currentUnit.price;
+    const day = currentUnit.dayPrice || currentUnit.price;
+    const wNight = currentUnit.weekendPrice || currentUnit.price;
+    const wDay = currentUnit.weekendDayPrice || currentUnit.dayPrice || currentUnit.price;
+    sub.innerHTML = `<small style="opacity:.85">اختر تاريخاً لعرض السعر المناسب</small><br>
+      <small>أسبوع: مبيت <strong>${night}</strong> · نهاري <strong>${day}</strong> &nbsp;|&nbsp; ويكند: مبيت <strong>${wNight}</strong> · نهاري <strong>${wDay}</strong> ${esc(cur)}</small>`;
   }
 }
 
@@ -556,8 +582,10 @@ async function sendToWhatsApp(){
   const name = document.getElementById("guest-name").value.trim();
   const phone = document.getElementById("guest-phone").value.trim();
   const notes = document.getElementById("guest-notes").value.trim();
-  const price = getStayPrice(currentUnit);
+  const weekend = isWeekendDate(selectedDate);
+  const price = getStayPrice(currentUnit, selectedDate);
   const stayLabel = getStayLabel();
+  const periodLabel = getPeriodLabel(weekend);
   const deposit = settingNumber(SETTINGS.depositAmount, 500);
   const insurance = settingNumber(SETTINGS.insuranceAmount, 0);
 
@@ -570,6 +598,7 @@ async function sendToWhatsApp(){
   msg += `🏡 الاستراحة: ${currentUnit.name}\n`;
   msg += `📅 التاريخ: ${dStr}\n`;
   msg += `🕒 نوع الحجز: ${stayLabel}\n`;
+  msg += `🗓️ الفترة: ${periodLabel}\n`;
   msg += `💵 السعر: ${price} ${currentUnit.currency}\n`;
   msg += `👤 الاسم: ${name}\n`;
   msg += `📱 الموبايل: ${phone}\n`;
@@ -590,6 +619,8 @@ async function sendToWhatsApp(){
         date: isoDate,
         stayType: stayType,
         stayLabel: stayLabel,
+        isWeekend: weekend,
+        periodLabel: periodLabel,
         name, phone, notes,
         price: price,
         currency: currentUnit.currency,

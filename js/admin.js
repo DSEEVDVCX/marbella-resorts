@@ -159,7 +159,9 @@ function renderDashboard(){
     perUnit[u.id]=0;
     (u.booked||[]).forEach(iso=>{
       confirmedKeys.add(u.id+"|"+iso);
-      totalBookings++; totalRev+=(+u.price||0); perUnit[u.id]++;
+      totalBookings++;
+      totalRev += (+unitPriceFor(u, "night", isWeekendDate(iso))||0);
+      perUnit[u.id]++;
     });
   });
   bookings.forEach(b=>{
@@ -197,7 +199,9 @@ function renderDashboard(){
     <table class="tbl"><thead><tr><th>الاسم</th><th>الاستراحة</th><th>النوع</th><th>التاريخ</th><th>الجوال</th><th>الحالة</th></tr></thead><tbody>
     ${recent.map(b=>{
       const stay = b.stayType === "day" ? "نهاري" : "مبيت";
-      return `<tr><td>${esc(bookingVal(b,"name"))}</td><td>${esc(bookingVal(b,"unitName"))}</td><td><small>${stay}</small></td><td>${esc(bookingVal(b,"date"))}</td><td>${esc(bookingVal(b,"phone"))}</td><td><span class="tag new">جديد</span></td></tr>`;
+      const wk = b.isWeekend != null ? b.isWeekend : isWeekendDate(b.date);
+      const period = wk ? " · ويكند" : "";
+      return `<tr><td>${esc(bookingVal(b,"name"))}</td><td>${esc(bookingVal(b,"unitName"))}</td><td><small>${stay}${period}</small></td><td>${esc(bookingVal(b,"date"))}</td><td>${esc(bookingVal(b,"phone"))}</td><td><span class="tag new">جديد</span></td></tr>`;
     }).join("")}
     </tbody></table>`:`<div class="tbl-empty">لا توجد حجوزات بعد</div>`;
 }
@@ -220,12 +224,13 @@ function renderAdminCalendar(){
   const first=new Date(y,m,1).getDay();
   const days=new Date(y,m+1,0).getDate();
   const today=new Date();today.setHours(0,0,0,0);
-  let html=`<div class="admin-cal">${AR_DOW.map(d=>`<div class="dow">${d}</div>`).join("")}`;
+  let html=`<div class="admin-cal">${AR_DOW.map((d,i)=>`<div class="dow${(i===5||i===6)?' dow-weekend':''}">${d}</div>`).join("")}`;
   for(let i=0;i<first;i++) html+=`<div class="day empty"></div>`;
   for(let d=1;d<=days;d++){
     const date=new Date(y,m,d);const iso=toISO(date);
     const past=date<today;const booked=unit.booked.includes(iso);
-    html+=`<div class="day ${past?'past':''} ${booked?'booked':''}" data-iso="${iso}">${d}</div>`;
+    const weekend=isWeekendDate(date)&&!past&&!booked;
+    html+=`<div class="day ${past?'past':''} ${booked?'booked':''} ${weekend?'weekend':''}" data-iso="${iso}">${d}</div>`;
   }
   html+=`</div>`;
   document.getElementById("admin-calendar").innerHTML=html;
@@ -252,8 +257,9 @@ function renderUnitsEditor(){
         <strong>${esc(u.name)}</strong>
         <button class="a-btn ghost" data-edit="${u.id}"><i class="fa-solid fa-pen"></i> تعديل</button>
       </div>
-      <div style="padding:1rem 1.2rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.6rem;font-size:.85rem;color:var(--a-muted)">
-        <div>السعر: <strong style="color:var(--a-text)">${u.price} ${u.currency}</strong></div>
+      <div style="padding:1rem 1.2rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.6rem;font-size:.85rem;color:var(--a-muted)">
+        <div>سعر الأسبوع: <strong style="color:var(--a-text)">${u.price} ${u.currency}</strong></div>
+        <div>سعر الويكند: <strong style="color:var(--a-text)">${u.weekendPrice||u.price} ${u.currency}</strong></div>
         <div>السعة: <strong style="color:var(--a-text)">${esc(u.capacity)}</strong></div>
         <div>الغرف: <strong style="color:var(--a-text)">${esc(u.beds)}</strong></div>
         <div>محجوزة: <strong style="color:var(--a-text)">${u.booked.length} يوم</strong></div>
@@ -270,8 +276,12 @@ function editUnit(id){
     <div class="a-field"><label>الاسم</label><input id="e-name" value="${esc(u.name)}"/></div>
     <div class="a-field"><label>الوصف</label><input id="e-tag" value="${esc(u.tagline)}"/></div>
     <div class="a-row">
-      <div class="a-field"><label>سعر المبيت (درهم)</label><input id="e-price" type="number" min="0" value="${u.price}"/></div>
-      <div class="a-field"><label>سعر النهاري (درهم)</label><input id="e-dayprice" type="number" min="0" value="${u.dayPrice||u.price}" placeholder="مثال: 800"/></div>
+      <div class="a-field"><label>سعر المبيت — أيام الأسبوع (درهم)</label><input id="e-price" type="number" min="0" value="${u.price}"/></div>
+      <div class="a-field"><label>سعر النهاري — أيام الأسبوع (درهم)</label><input id="e-dayprice" type="number" min="0" value="${u.dayPrice||u.price}" placeholder="مثال: 800"/></div>
+    </div>
+    <div class="a-row">
+      <div class="a-field"><label>سعر المبيت — ويكند (جمعة+سبت)</label><input id="e-weekendprice" type="number" min="0" value="${u.weekendPrice||u.price}" placeholder="مثال: 1800"/></div>
+      <div class="a-field"><label>سعر النهاري — ويكند (جمعة+سبت)</label><input id="e-weekenddayprice" type="number" min="0" value="${u.weekendDayPrice||u.weekendPrice||u.dayPrice||u.price}" placeholder="مثال: 1000"/></div>
     </div>
     <div class="a-field"><label>العملة</label><input id="e-curr" value="${esc(u.currency)}"/></div>
     <div class="a-field"><label>السعة</label><input id="e-cap" value="${esc(u.capacity)}"/></div>
@@ -349,6 +359,10 @@ function editUnit(id){
     u.price=+wrap.querySelector("#e-price").value||u.price;
     const dpVal = wrap.querySelector("#e-dayprice").value.trim();
     u.dayPrice = dpVal ? +dpVal : u.price;   // افتراضياً يساوي سعر المبيت إن لم يُحدّد
+    const wpVal = wrap.querySelector("#e-weekendprice").value.trim();
+    u.weekendPrice = wpVal ? +wpVal : u.price;   // افتراضياً يساوي سعر المبيت أيام الأسبوع
+    const wdpVal = wrap.querySelector("#e-weekenddayprice").value.trim();
+    u.weekendDayPrice = wdpVal ? +wdpVal : (u.weekendPrice || u.price);   // افتراضياً يساوي سعر مبيت الويكند
     u.currency=wrap.querySelector("#e-curr").value.trim()||u.currency;
     u.capacity=wrap.querySelector("#e-cap").value.trim();
     u.beds=wrap.querySelector("#e-beds").value.trim();
@@ -373,9 +387,13 @@ function renderBookings(filter=""){
       const stayBadge = b.stayType === "day"
         ? `<span class="tag" style="background:#fef3c7;color:#92400e">نهاري</span>`
         : `<span class="tag" style="background:#dbeafe;color:#1e40af">مبيت</span>`;
+      const weekend = b.isWeekend != null ? b.isWeekend : isWeekendDate(b.date);
+      const periodBadge = weekend
+        ? ` <span class="tag" style="background:#ede9fe;color:#5b21b6">ويكند</span>`
+        : ` <span class="tag" style="background:#f1f5f9;color:#475569">أسبوع</span>`;
       return `<tr>
       <td>${esc(bookingVal(b,"name"))}${b.notes?`<br><small style="color:var(--a-muted)">${esc(b.notes)}</small>`:""}</td>
-      <td>${esc(bookingVal(b,"unitName"))}</td><td>${stayBadge}</td><td>${esc(bookingVal(b,"date"))}</td><td>${esc(bookingVal(b,"phone"))}</td><td>${bookingPrice(b).toLocaleString("ar")} ${esc(bookingVal(b,"currency"))}</td>
+      <td>${esc(bookingVal(b,"unitName"))}</td><td>${stayBadge}${periodBadge}</td><td>${esc(bookingVal(b,"date"))}</td><td>${esc(bookingVal(b,"phone"))}</td><td>${bookingPrice(b).toLocaleString("ar")} ${esc(bookingVal(b,"currency"))}</td>
       <td>${bookingDateLabel(b.createdAt)}</td>
       <td><div class="row-actions">
         <a class="icon-btn" href="https://wa.me/${bookingVal(b,"phone").replace(/\D/g,'')}" target="_blank" rel="noopener" title="واتساب"><i class="fa-brands fa-whatsapp"></i></a>
@@ -403,8 +421,11 @@ function csvSafe(v){
 document.getElementById("export-csv").addEventListener("click",()=>{
   const bk=cachedBookings;
   if(!bk.length){toast("لا توجد حجوزات للتصدير",true);return;}
-  const rows=[["ID","الاسم","الاستراحة","التاريخ","الجوال","ملاحظات","السعر","العملة","تاريخ الطلب"]];
-  bk.forEach(b=>rows.push([b.id,bookingVal(b,"name"),bookingVal(b,"unitName"),bookingVal(b,"date"),bookingVal(b,"phone"),bookingVal(b,"notes"),bookingPrice(b),bookingVal(b,"currency"),bookingDateLabel(b.createdAt)]));
+  const rows=[["ID","الاسم","الاستراحة","التاريخ","الجوال","ملاحظات","السعر","العملة","الفترة","تاريخ الطلب"]];
+  bk.forEach(b=>{
+    const wk = b.isWeekend != null ? b.isWeekend : isWeekendDate(b.date);
+    rows.push([b.id,bookingVal(b,"name"),bookingVal(b,"unitName"),bookingVal(b,"date"),bookingVal(b,"phone"),bookingVal(b,"notes"),bookingPrice(b),bookingVal(b,"currency"),wk?"ويكند":"أيام الأسبوع",bookingDateLabel(b.createdAt)]);
+  });
   const csv="\uFEFF"+rows.map(r=>r.map(c=>`"${csvSafe(c).replace(/"/g,'""')}"`).join(",")).join("\n");
   const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);

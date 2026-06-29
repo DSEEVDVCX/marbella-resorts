@@ -124,6 +124,8 @@ a{color:inherit;text-decoration:none}
 .admin-cal .day.empty{visibility:hidden}
 .admin-cal .day.booked{background:#3a241f;color:var(--a-clay);border-color:var(--a-clay)}
 .admin-cal .day.today{box-shadow:inset 0 0 0 2px var(--a-brass)}
+.admin-cal .day.weekend{background:#241c33;border-color:#5b21b6;color:#c4b5fd}
+.admin-cal .dow-weekend{color:#a78bfa;font-weight:700}
 .cal-unit-tabs{display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap}
 .cal-tab{padding:.4rem .9rem;border-radius:50px;border:1px solid var(--a-line);background:var(--a-bg);color:var(--a-muted);cursor:pointer;font-size:.82rem;font-family:inherit}
 .cal-tab.active{background:var(--a-brass);color:var(--a-bg);border-color:var(--a-brass)}

@@ -181,6 +181,26 @@ const AR_DOW = ["أحد","إثنين","ثلاثاء","أربعاء","خميس","
 function pad(n){return String(n).padStart(2,"0");}
 function toISO(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
 
+/* ===== تسعير الويكند =====
+   أيام الويكند: الجمعة (5) والسبت (6) وفق Date.getDay().
+   4 أسعار لكل استراحة: مبيت/نهاري × أيام الأسبوع/ويكند،
+   مع بدائل منطقية عند عدم تحديد سعر الويكند. */
+const WEEKEND_DAYS = [5, 6];
+function isWeekendDate(date){
+  if(!date) return false;
+  const d = (date instanceof Date) ? date : new Date(date);
+  if(isNaN(d.getTime())) return false;
+  return WEEKEND_DAYS.indexOf(d.getDay()) >= 0;
+}
+function unitPriceFor(unit, stay, weekend){
+  if(stay === "day"){
+    return weekend
+      ? (unit.weekendDayPrice || unit.weekendPrice || unit.dayPrice || unit.price)
+      : (unit.dayPrice || unit.price);
+  }
+  return weekend ? (unit.weekendPrice || unit.price) : unit.price;
+}
+
 
 
 if(!window.MarbellaStore){

@@ -17,17 +17,35 @@ bootstrapPage(() => {
 
   function renderPrices(unit, isEn){
     const currency = isEn ? (unit.currencyEn || unit.currency) : unit.currency;
-    const nightPrice = Number(unit.price || 0);
-    const dayPrice = Number(unit.dayPrice || unit.price || 0);
+    const night = Number(unit.price || 0);
+    const day = Number(unit.dayPrice || unit.price || 0);
+    const wNight = Number(unit.weekendPrice || unit.price || 0);
+    const wDay = Number(unit.weekendDayPrice || unit.weekendPrice || unit.dayPrice || unit.price || 0);
+    const wkLbl = isEn ? "Weekend" : "ويكند";
+    const wdLbl = isEn ? "Weekdays" : "أيام الأسبوع";
     return `
-      <div class="bc-prices" aria-label="${isEn ? "Booking prices" : "أسعار الحجز"}">
-        <div class="bc-price-night">
-          <span><i class="fa-solid fa-moon" aria-hidden="true"></i> ${isEn ? "Overnight" : "مع مبيت"}</span>
-          <strong>${formatPrice(nightPrice, currency)}</strong>
+      <div class="bc-prices bc-prices-4" aria-label="${isEn ? "Booking prices" : "أسعار الحجز"}">
+        <div class="bc-price-group">
+          <span class="bc-group-label">${wdLbl}</span>
+          <div class="bc-price-night">
+            <span><i class="fa-solid fa-moon" aria-hidden="true"></i> ${isEn ? "Overnight" : "مع مبيت"}</span>
+            <strong>${formatPrice(night, currency)}</strong>
+          </div>
+          <div class="bc-price-day">
+            <span><i class="fa-solid fa-sun" aria-hidden="true"></i> ${isEn ? "Day use" : "بدون مبيت"}</span>
+            <strong>${formatPrice(day, currency)}</strong>
+          </div>
         </div>
-        <div class="bc-price-day">
-          <span><i class="fa-solid fa-sun" aria-hidden="true"></i> ${isEn ? "Day use" : "بدون مبيت"}</span>
-          <strong>${formatPrice(dayPrice, currency)}</strong>
+        <div class="bc-price-group bc-group-weekend">
+          <span class="bc-group-label">${wkLbl} <small>(${isEn ? "Fri/Sat" : "جمعة/سبت"})</small></span>
+          <div class="bc-price-night">
+            <span><i class="fa-solid fa-moon" aria-hidden="true"></i> ${isEn ? "Overnight" : "مع مبيت"}</span>
+            <strong>${formatPrice(wNight, currency)}</strong>
+          </div>
+          <div class="bc-price-day">
+            <span><i class="fa-solid fa-sun" aria-hidden="true"></i> ${isEn ? "Day use" : "بدون مبيت"}</span>
+            <strong>${formatPrice(wDay, currency)}</strong>
+          </div>
         </div>
       </div>`;
   }
