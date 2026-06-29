@@ -360,7 +360,8 @@ if(!window.MarbellaStore){
       });
       if(!res.ok){
         const t = await res.text().catch(()=>"");
-        throw new Error("تعذّر الرفع إلى ImgBB (" + res.status + (t?("): "+t):")"));
+        const detail = t ? ("): " + t) : ")";
+        throw new Error("تعذّر الرفع إلى ImgBB (" + res.status + detail);
       }
       const data = await res.json();
       if(!data || !data.success || !data.data || !data.data.url){
