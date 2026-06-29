@@ -122,10 +122,7 @@ function renderUnits(filterFn){
     const features = featsList.map(f=>`<span class="chip"><i class="fa-solid fa-check"></i>${esc(f)}</span>`).join("");
     const dots = imgs.map((_,i)=>`<span${i===0?' class="active"':''}></span>`).join("");
     const fav = store && store.isFavorite(u.id);
-    const night = u.price;
-    const day = u.dayPrice || u.price;
-    const wNight = u.weekendPrice || u.price;
-    const wDay = u.weekendDayPrice || u.dayPrice || u.price;
+    const { night, day, wNight, wDay } = getUnitPrices(u);
     const hasDay = u.dayPrice && u.dayPrice !== u.price;
     const hasWeekend = (wNight !== night) || (wDay !== day);
     let priceHTML = "";
@@ -201,7 +198,8 @@ function renderUnits(filterFn){
       btn.querySelector("i").className = `fa-${on?'solid':'regular'} fa-heart`;
       updateFavCount();
       // تحديث قسم المفضّلة إن كان مرئياً
-      if(!document.getElementById("fav-grid").hidden) renderFavorites();
+      const fg = document.getElementById("fav-grid");
+      if(fg && !fg.hidden) renderFavorites();
     });
   });
 
@@ -242,12 +240,9 @@ function renderFavorites(){
     return;
   }
   if(empty) empty.hidden = true;
-  // إعادة استخدام renderUnits مع فلتر المفضّلة
-  const prevGridId = document.getElementById("units-grid");
   grid.innerHTML = favUnits.map(u => {
     const features = (u.features||[]).map(f=>`<span class="chip"><i class="fa-solid fa-check"></i>${esc(f)}</span>`).join("");
     const imgs = u.images || [];
-    const fav = true;
     return `
     <article class="unit-card">
       <div class="unit-gallery">
@@ -518,10 +513,7 @@ function updateBookingSub(){
     const stayLbl = stayType === "day" ? "نهاري" : "مبيت";
     sub.innerHTML = `<i class="fa-solid fa-tag" aria-hidden="true"></i> ${getPeriodLabel(weekend)} — ${stayLbl}: <strong>${price} ${esc(cur)}</strong>`;
   } else {
-    const night = currentUnit.price;
-    const day = currentUnit.dayPrice || currentUnit.price;
-    const wNight = currentUnit.weekendPrice || currentUnit.price;
-    const wDay = currentUnit.weekendDayPrice || currentUnit.dayPrice || currentUnit.price;
+    const { night, day, wNight, wDay } = getUnitPrices(currentUnit);
     sub.innerHTML = `<small style="opacity:.85">اختر تاريخاً لعرض السعر المناسب</small><br>
       <small>أسبوع: مبيت <strong>${night}</strong> · نهاري <strong>${day}</strong> &nbsp;|&nbsp; ويكند: مبيت <strong>${wNight}</strong> · نهاري <strong>${wDay}</strong> ${esc(cur)}</small>`;
   }
@@ -574,7 +566,6 @@ async function sendToWhatsApp(){
   const stayLabel = getStayLabel();
   const periodLabel = getPeriodLabel(weekend);
   const deposit = settingNumber(SETTINGS.depositAmount, 500);
-  const insurance = settingNumber(SETTINGS.insuranceAmount, 0);
 
   const btn = document.getElementById("send-whatsapp");
   btn.setAttribute("aria-busy","true");

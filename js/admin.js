@@ -199,7 +199,7 @@ function renderDashboard(){
     <table class="tbl"><thead><tr><th>الاسم</th><th>الاستراحة</th><th>النوع</th><th>التاريخ</th><th>الجوال</th><th>الحالة</th></tr></thead><tbody>
     ${recent.map(b=>{
       const stay = b.stayType === "day" ? "نهاري" : "مبيت";
-      const wk = b.isWeekend != null ? b.isWeekend : isWeekendDate(b.date);
+      const wk = bookingWeekend(b);
       const period = wk ? " · ويكند" : "";
       return `<tr><td>${esc(bookingVal(b,"name"))}</td><td>${esc(bookingVal(b,"unitName"))}</td><td><small>${stay}${period}</small></td><td>${esc(bookingVal(b,"date"))}</td><td>${esc(bookingVal(b,"phone"))}</td><td><span class="tag new">جديد</span></td></tr>`;
     }).join("")}
@@ -387,7 +387,7 @@ function renderBookings(filter=""){
       const stayBadge = b.stayType === "day"
         ? `<span class="tag" style="background:#fef3c7;color:#92400e">نهاري</span>`
         : `<span class="tag" style="background:#dbeafe;color:#1e40af">مبيت</span>`;
-      const weekend = b.isWeekend != null ? b.isWeekend : isWeekendDate(b.date);
+      const weekend = bookingWeekend(b);
       const periodBadge = weekend
         ? ` <span class="tag" style="background:#ede9fe;color:#5b21b6">ويكند</span>`
         : ` <span class="tag" style="background:#f1f5f9;color:#475569">أسبوع</span>`;
@@ -423,7 +423,7 @@ document.getElementById("export-csv").addEventListener("click",()=>{
   if(!bk.length){toast("لا توجد حجوزات للتصدير",true);return;}
   const rows=[["ID","الاسم","الاستراحة","التاريخ","الجوال","ملاحظات","السعر","العملة","الفترة","تاريخ الطلب"]];
   bk.forEach(b=>{
-    const wk = b.isWeekend != null ? b.isWeekend : isWeekendDate(b.date);
+    const wk = bookingWeekend(b);
     rows.push([b.id,bookingVal(b,"name"),bookingVal(b,"unitName"),bookingVal(b,"date"),bookingVal(b,"phone"),bookingVal(b,"notes"),bookingPrice(b),bookingVal(b,"currency"),wk?"ويكند":"أيام الأسبوع",bookingDateLabel(b.createdAt)]);
   });
   const csv="\uFEFF"+rows.map(r=>r.map(c=>`"${csvSafe(c).replace(/"/g,'""')}"`).join(",")).join("\n");

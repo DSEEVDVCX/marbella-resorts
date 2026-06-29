@@ -226,7 +226,8 @@ function initShell(){
   if(bankEl && SETTINGS.bankAccount) bankEl.textContent = SETTINGS.bankAccount;
   
   const dirEl = $("directions-text");
-  if(dirEl) dirEl.textContent = isEn ? SETTINGS.directionsEn : SETTINGS.directions;
+  const dirVal = isEn ? (SETTINGS.directionsEn || SETTINGS.directions) : SETTINGS.directions;
+  if(dirEl && dirVal) dirEl.textContent = dirVal;
   
   
   set("areaName", area);

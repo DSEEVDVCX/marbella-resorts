@@ -17,10 +17,7 @@ bootstrapPage(() => {
 
   function renderPrices(unit, isEn){
     const currency = isEn ? (unit.currencyEn || unit.currency) : unit.currency;
-    const night = Number(unit.price || 0);
-    const day = Number(unit.dayPrice || unit.price || 0);
-    const wNight = Number(unit.weekendPrice || unit.price || 0);
-    const wDay = Number(unit.weekendDayPrice || unit.weekendPrice || unit.dayPrice || unit.price || 0);
+    const { night, day, wNight, wDay } = getUnitPrices(unit);
     const wkLbl = isEn ? "Weekend" : "ويكند";
     const wdLbl = isEn ? "Weekdays" : "أيام الأسبوع";
     return `

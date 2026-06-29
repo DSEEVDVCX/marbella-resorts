@@ -200,6 +200,18 @@ function unitPriceFor(unit, stay, weekend){
   }
   return weekend ? (unit.weekendPrice || unit.price) : unit.price;
 }
+/* كل أسعار الاستراحة الأربعة (مع البدائل المنطقية) — مصدر موحّد للعرض */
+function getUnitPrices(unit){
+  const night = unit.price;
+  const day = unit.dayPrice || unit.price;
+  const wNight = unit.weekendPrice || unit.price;
+  const wDay = unit.weekendDayPrice || unit.weekendPrice || unit.dayPrice || unit.price;
+  return { night, day, wNight, wDay };
+}
+/* هل حجز ضمن ويكند (يتسامح مع الحجوزات القديمة دون isWeekend) */
+function bookingWeekend(b){
+  return b.isWeekend != null ? b.isWeekend : isWeekendDate(b.date);
+}
 
 
 
@@ -461,6 +473,16 @@ if(!window.MarbellaStore){
     },
 
     /* ===== إعادة التعيين الكامل (لوحة التحكم) ===== */
+    async _purgeCollection(name){
+      // حذف كل مستندات مجموعة على دفعات (حد 500 عملية لكل batch)
+      let snap = await db.collection(name).limit(450).get();
+      while(!snap.empty){
+        const b = db.batch();
+        snap.forEach(d => b.delete(d.ref));
+        await b.commit();
+        snap = await db.collection(name).limit(450).get();
+      }
+    },
     async resetAll(){
       if(!window.db) return;
       // الإعدادات والاستراحات (إعادة زرع الافتراضي)
@@ -470,14 +492,9 @@ if(!window.MarbellaStore){
       DEFAULT_UNITS.forEach(u => unitBatch.set(db.collection("units").doc(u.id), JSON.parse(JSON.stringify(u))));
       await unitBatch.commit();
       UNITS.splice(0, UNITS.length, ...JSON.parse(JSON.stringify(DEFAULT_UNITS)));
-      // حذف الحجوزات على دفعات (حد 500 عملية لكل batch) — يُعاد رمي الخطأ ليُعالَج في الواجهة
-      let snap = await db.collection("bookings").limit(450).get();
-      while(!snap.empty){
-        const b = db.batch();
-        snap.forEach(d => b.delete(d.ref));
-        await b.commit();
-        snap = await db.collection("bookings").limit(450).get();
-      }
+      // حذف الحجوزات والتقييمات (دفعات) — يُعاد رمي الخطأ ليُعالَج في الواجهة
+      await this._purgeCollection("bookings");
+      await this._purgeCollection("reviews");
     }
   };
 }
