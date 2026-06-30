@@ -255,12 +255,24 @@ a{color:inherit;text-decoration:none}
 }
 
 @media(max-width:768px){
+  .main-area{padding:1.1rem}
   .admin-layout{grid-template-columns:1fr}
   .sidebar{position:static;height:auto;display:flex;overflow-x:auto;padding:1rem}
   .sidebar-brand{border:0;padding:0 .8rem 0 0;margin-inline-end:1rem}
   .sidebar-foot{display:none}
   .nav-item{white-space:nowrap;border:0;border-radius:8px;padding:.5rem .9rem}
+  .panel{padding:1.1rem}
   .a-row{grid-template-columns:1fr}
   .search-box input{width:100%}
-  .rev-text-cell{max-width:60vw}
+  /* الجداول واسعة الأعمدة: مرّرها أفقياً داخل البطاقة بدل خروجها خارج الشاشة */
+  #dash-recent,#bookings-table,#reviews-table{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tbl{min-width:540px}
+  .tbl th,.tbl td{padding:.6rem .55rem;font-size:.8rem}
+  .rev-text-cell{max-width:240px}
+}
+@media(max-width:480px){
+  .main-area{padding:.85rem}
+  .topbar-a{flex-direction:column;align-items:flex-start;gap:.6rem}
+  .stat-cards{grid-template-columns:1fr}
+  .panel-head{align-items:flex-start}
 }

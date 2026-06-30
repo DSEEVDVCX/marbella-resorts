@@ -257,12 +257,6 @@ if(!window.MarbellaStore){
       // تجاهل الكتابات المحلية المعلّقة (cache قبل تأكيد الخادم) — تسبب عودة القيم القديمة
       if(doc.metadata && doc.metadata.hasPendingWrites) return;
       const merged = mergeSettings(DEFAULT_SETTINGS, doc.data());
-      // احمِ offer المحلي الأحدث (الذي عدّله المستخدم للتو) من cache قديم
-      if(merged.offer && SETTINGS.offer && merged.offer.updatedAt && SETTINGS.offer.updatedAt){
-        if(merged.offer.updatedAt < SETTINGS.offer.updatedAt){
-          merged.offer = SETTINGS.offer;
-        }
-      }
       // لا تطلق الحدث إلا إذا تغيّر شيء فعلاً (يمنع الإطلاقات الزائدة والحلقات)
       const key = JSON.stringify({offer: merged.offer});
       if(key === _lastSettingsKey){ Object.assign(SETTINGS, merged); return; }
