@@ -271,8 +271,9 @@ function editUnit(id){
   const units=store.getUnits();const u=units.find(x=>x.id===id);if(!u)return;
   const wrap=document.createElement("div");
   wrap.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.6);display:grid;place-items:center;z-index:300;padding:1rem";
-  wrap.innerHTML=`<div style="background:var(--a-surface);border:1px solid var(--a-line);border-radius:10px;padding:1.6rem;width:min(440px,100%);max-height:90vh;overflow:auto">
-    <h3 style="margin-bottom:1rem">تعديل ${esc(u.name)}</h3>
+  wrap.innerHTML=`<div style="background:var(--a-surface);border:1px solid var(--a-line);border-radius:14px;padding:1.7rem;width:min(680px,96vw);max-height:92vh;overflow:auto;box-shadow:var(--shadow-hover);position:relative">
+    <div style="position:absolute;inset-block-start:0;inset-inline:0;height:2px;background:linear-gradient(90deg,transparent,var(--a-brass),transparent);border-radius:14px 14px 0 0"></div>
+    <h3 style="margin-bottom:1.1rem;font-size:1.15rem">تعديل ${esc(u.name)}</h3>
     <div class="a-field"><label>الاسم</label><input id="e-name" value="${esc(u.name)}"/></div>
     <div class="a-field"><label>الوصف</label><input id="e-tag" value="${esc(u.tagline)}"/></div>
     <div class="a-row">
