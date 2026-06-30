@@ -245,8 +245,21 @@ if(!window.MarbellaStore){
     }, err => console.warn("units snapshot error", err));
   }
   // فعّل الاشتراك بمجرد تحميل firebase-config.js (db متاح)
-  if(window.db){ _subscribeUnits(); }
-  else { window.addEventListener("firebaseReady", _subscribeUnits, { once:true }); }
+  if(window.db){ _subscribeUnits(); _subscribeSettings(); }
+  else { window.addEventListener("firebaseReady", () => { _subscribeUnits(); _subscribeSettings(); }, { once:true }); }
+
+  // اشتراك لحظي على الإعدادات (العروض، الأسعار، التواصل...) — ينعكس فوراً على كل الصفحات
+  let _settingsSubscribed = false;
+  function _subscribeSettings(){
+    if(_settingsSubscribed || !window.db) return;
+    _settingsSubscribed = true;
+    db.collection("settings").doc("main").onSnapshot(doc => {
+      if(!doc.exists) return;
+      Object.assign(SETTINGS, mergeSettings(DEFAULT_SETTINGS, doc.data()));
+      // أبلغ الصفحات: الإعدادات تغيّرت (العرض، الأسعار، رقم الواتساب...)
+      window.dispatchEvent(new Event("settingsUpdated"));
+    }, err => console.warn("settings snapshot error", err));
+  }
 
   window.MarbellaStore = {
     AR_MONTHS, AR_DOW, pad, toISO,
@@ -373,7 +386,10 @@ if(!window.MarbellaStore){
     getSettings(){ return Object.assign({}, SETTINGS); },
     async setSettings(s){
       Object.assign(SETTINGS, s);
+      // أبلغ الصفحات المفتوحة فوراً (لا ننتظر onSnapshot)
+      window.dispatchEvent(new Event("settingsUpdated"));
       if(window.db) await db.collection("settings").doc("main").set(s);
+      window.dispatchEvent(new Event("settingsUpdated"));
     },
 
     /* ===== الاستراحات ===== */

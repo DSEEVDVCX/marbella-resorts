@@ -767,6 +767,12 @@ function init(){
     buildFilterChips();
     updateFavCount();
   });
+  // إعادة تطبيق الإعدادات (العرض، الأسعار، رقم الواتساب...) عند تغييرها من لوحة التحكم
+  window.addEventListener("settingsUpdated", () => {
+    initCountdown();          // إخفاء/إظهار شريط العرض فوراً
+    renderUnits();            // الأسعار قد تتغيّر
+    initShell();
+  });
   document.getElementById("modal-close").addEventListener("click",closeBooking);
   document.getElementById("booking-modal").addEventListener("click",(e)=>{
     if(e.target.id==="booking-modal") closeBooking();
