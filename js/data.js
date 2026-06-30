@@ -387,10 +387,8 @@ if(!window.MarbellaStore){
     getSettings(){ return Object.assign({}, SETTINGS); },
     async setSettings(s){
       Object.assign(SETTINGS, s);
-      // أبلغ الصفحات المفتوحة فوراً (لا ننتظر onSnapshot)
-      window.dispatchEvent(new Event("settingsUpdated"));
       if(window.db) await db.collection("settings").doc("main").set(s);
-      window.dispatchEvent(new Event("settingsUpdated"));
+      // onSnapshot على settings/main سيُطلق settingsUpdated تلقائياً بعد الكتابة
     },
 
     /* ===== الاستراحات ===== */

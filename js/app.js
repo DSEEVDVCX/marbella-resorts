@@ -276,19 +276,29 @@ function renderFavorites(){
   });
 }
 
-/* ===== عدّاد العروض التنازلي ===== */
+/* ===== عدّاد العروض التنازلي =====
+   يُعاد بناؤه نظيفاً: متغيّر عام للـ interval يُوقف قبل أي إعادة تشغيل،
+   ويقرأ القيم من SETTINGS.offer مباشرة كل ثانية (لا قيم محجوزة قديمة). */
+let _offerTimer = null;
 function initCountdown(){
   const banner = document.getElementById("offer-banner");
   if(!banner) return;
-  // اقرأ العرض من SETTINGS.offer (مصدر موحّد يُدار من لوحة التحكم)
-  const off = SETTINGS.offer || OFFERS;
-  if(!off || !off.target || !off.active){ banner.hidden = true; return; }
-  banner.hidden = false;
-  const isEn = currentLang === "en";
-  const label = isEn ? (off.labelEn || off.label) : off.label;
-  const target = new Date(off.target + "T23:59:59");
-  const start = off.start ? new Date(off.start + "T00:00:00") : null;
-  function tick(){
+  // أوقف أي عدّاد سابق قبل بدء جديد (يمنع تضارب العدّادات)
+  if(_offerTimer){ clearInterval(_offerTimer); _offerTimer = null; }
+
+  function render(){
+    const off = SETTINGS.offer;
+    // لا عرض أو غير مُفعّل: أخفِ البانر وأوقف العدّاد
+    if(!off || !off.active || !off.target){
+      banner.hidden = true;
+      if(_offerTimer){ clearInterval(_offerTimer); _offerTimer = null; }
+      return;
+    }
+    banner.hidden = false;
+    const isEn = currentLang === "en";
+    const label = isEn ? (off.labelEn || off.label) : off.label;
+    const target = new Date(off.target + "T23:59:59");
+    const start = off.start ? new Date(off.start + "T00:00:00") : null;
     const now = new Date();
     // إن لم يبدأ العرض بعد
     if(start && now < start){
@@ -298,7 +308,7 @@ function initCountdown(){
     let diff = Math.max(0, target - now);
     if(diff <= 0){
       banner.innerHTML = `<div class="ob-label"><i class="fa-solid fa-fire" aria-hidden="true"></i> ${label} — ${tr("offer-ended")}</div>`;
-      clearInterval(timer);
+      if(_offerTimer){ clearInterval(_offerTimer); _offerTimer = null; }
       return;
     }
     const days = Math.floor(diff / 86400000); diff %= 86400000;
@@ -314,8 +324,8 @@ function initCountdown(){
         <div class="cd-unit"><strong>${pad(secs)}</strong><small>${isEn?"Sec":"ثانية"}</small></div>
       </div>`;
   }
-  tick();
-  const timer = setInterval(tick, 1000);
+  render();
+  _offerTimer = setInterval(render, 1000);
 }
 
 /* ===== عرض قصص النجاح ===== */
