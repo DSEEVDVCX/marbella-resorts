@@ -244,9 +244,6 @@ if(!window.MarbellaStore){
       window.dispatchEvent(new Event("unitsUpdated"));
     }, err => console.warn("units snapshot error", err));
   }
-  // فعّل الاشتراك بمجرد تحميل firebase-config.js (db متاح)
-  if(window.db){ _subscribeUnits(); _subscribeSettings(); }
-  else { window.addEventListener("firebaseReady", () => { _subscribeUnits(); _subscribeSettings(); }, { once:true }); }
 
   // اشتراك لحظي على الإعدادات (العروض، الأسعار، التواصل...) — ينعكس فوراً على كل الصفحات
   let _settingsSubscribed = false;
@@ -260,6 +257,10 @@ if(!window.MarbellaStore){
       window.dispatchEvent(new Event("settingsUpdated"));
     }, err => console.warn("settings snapshot error", err));
   }
+
+  // فعّل الاشتراك بمجرد تحميل firebase-config.js (db متاح)
+  if(window.db){ _subscribeUnits(); _subscribeSettings(); }
+  else { window.addEventListener("firebaseReady", () => { _subscribeUnits(); _subscribeSettings(); }, { once:true }); }
 
   window.MarbellaStore = {
     AR_MONTHS, AR_DOW, pad, toISO,
