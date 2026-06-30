@@ -55,7 +55,6 @@ const DICT = {
     "loc-title": "في قلب",
     "offer-ended": "انتهى العرض",
     "book-deposit": "تأكيد الحجز يتطلب دفع عربون بقيمة 500 درهم لحساب رقم:",
-    "pledge-deposit": "أتعهد بدفع تأمين مسترجع (يُسترد في حال عدم وجود تلف أو فقد أو كسر).",
     "pledge-pool": "أتعهد بعدم استخدام أي مواد تغير لون المسبح (صابون، ألوان، إلخ).",
     "directions-title": "طريقة الوصول",
     "stay-night": "مع مبيت",
@@ -119,7 +118,6 @@ const DICT = {
     "loc-title": "In the Heart of",
     "offer-ended": "Offer Ended",
     "book-deposit": "Booking requires a 500 AED deposit to account:",
-    "pledge-deposit": "I pledge to pay a refundable deposit (refunded if no damage/loss occurs).",
     "pledge-pool": "I pledge not to use any substances that change the pool water color (dyes, soap, etc).",
     "directions-title": "Directions",
     "stay-night": "With overnight stay",
@@ -339,8 +337,8 @@ function openLightbox(images, startIdx){
     document.body.appendChild(lb);
     lb.addEventListener("click", e => {
       if(e.target === lb || e.target.closest(".lb-close")) closeLightbox();
-      if(e.target.closest(".lb-prev")) _lbNav(-1);
-      if(e.target.closest(".lb-next")) _lbNav(1);
+      if(e.target.closest(".lb-nav.prev")) _lbNav(-1);
+      if(e.target.closest(".lb-nav.next")) _lbNav(1);
     });
   }
   // مستمع لوحة المفاتيح على مستوى المستند (لا يعتمد على بقاء التركيز داخل lb)

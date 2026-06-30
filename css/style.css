@@ -163,9 +163,6 @@ img{max-width:100%;display:block}
 .btn:active{transform:translateY(0) scale(.97)}
 .btn:disabled,.btn[aria-busy="true"]{opacity:.6;cursor:not-allowed;transform:none}
 .btn[aria-busy="true"]{pointer-events:none}
-.btn .spin{display:none;width:1em;height:1em;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
-.btn[aria-busy="true"] .spin{display:inline-block}
-@keyframes spin{to{transform:rotate(360deg)}}
 
 /* ===== حقول: مؤشر إلزامي ورسائل خطأ ===== */
 .req{color:var(--clay);font-weight:700}

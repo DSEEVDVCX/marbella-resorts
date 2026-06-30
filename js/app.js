@@ -7,6 +7,7 @@ let currentUnit = null;   // الإستراحة المختارة حالياً
 let calDate = new Date();  // الشهر المعروض في التقويم
 let selectedDate = null;   // التاريخ المختار من المستخدم
 let stayType = "night";     // نوع الحجز: "night" (مع مبيت) أو "day" (نهاري)
+let _bookingId = null;      // معرّف ثابت لمحاولة الحجز الحالية (يمنع تكرار المستند)
 
 /* ===== أسعار نوع الحجز =====
    كل سعر رقم صريح يُحدّد من لوحة التحكم (لا نسب مئوية).
@@ -179,13 +180,13 @@ function renderUnits(filterFn){
     </article>`;
   }).join("");
 
-  // أزرار الحجز
-  document.querySelectorAll("[data-book]").forEach(btn=>{
+  // أزرار الحجز (داخل شبكة الاستراحات فقط — تفادياً لربط أزرار قسم المفضّلة مكرراً)
+  grid.querySelectorAll("[data-book]").forEach(btn=>{
     btn.addEventListener("click",()=>openBooking(btn.dataset.book));
   });
 
   // أزرار المفضّلة
-  document.querySelectorAll("[data-fav]").forEach(btn=>{
+  grid.querySelectorAll("[data-fav]").forEach(btn=>{
     btn.addEventListener("click",(e)=>{
       e.stopPropagation();
       const id = btn.dataset.fav;
@@ -206,7 +207,6 @@ function renderUnits(filterFn){
   // معرض الصور (تبديل يدوي)
   list.forEach(u=>{
     const img = document.querySelector(`#gal-${u.id} img`);
-    const gal = document.getElementById(`gal-${u.id}`);
     document.querySelector(`#gal-${u.id} .gal-next`).addEventListener("click",(e)=>{e.stopPropagation();switchImg(u,img,1);});
     document.querySelector(`#gal-${u.id} .gal-prev`).addEventListener("click",(e)=>{e.stopPropagation();switchImg(u,img,-1);});
     // فتح Lightbox عند النقر على الصورة
@@ -423,7 +423,9 @@ function renderCalendar(){
 
   wrap.querySelectorAll(".cal-day.free").forEach(el=>{
     el.addEventListener("click",()=>{
-      selectedDate = new Date(el.dataset.date);
+      // حلّل التاريخ بالتوقيت المحلي (new Date("YYYY-MM-DD") يُفسَّر UTC ويزيح اليوم)
+      const [yy,mm,dd] = el.dataset.date.split("-").map(Number);
+      selectedDate = new Date(yy, mm-1, dd);
       renderCalendar();
     });
   });
@@ -499,6 +501,8 @@ function openBooking(unitId){
   selectedDate = null;
   calDate = new Date();
   stayType = "night";
+  // معرّف ثابت لهذه المحاولة: أي إرسال مكرّر يكتب فوق المستند نفسه بدل تكراره
+  _bookingId = "BK" + Date.now().toString(36);
   document.getElementById("modal-title").textContent = `حجز: ${currentUnit.name}`;
   updateBookingSub();
   applyPledgeSettings();
@@ -565,7 +569,10 @@ function closeBooking(){
 }
 
 /* ===== إرسال الطلب إلى واتساب ===== */
+let _bookingInFlight = false;
 async function sendToWhatsApp(){
+  // حارس ضد الإرسال المزدوج (نقرتان سريعتان / إعادة إطلاق الحدث)
+  if(_bookingInFlight) return false;
   if(!selectedDate){
     showToast("اختر تاريخاً من التقويم أولاً","err");
     return false;
@@ -590,6 +597,7 @@ async function sendToWhatsApp(){
   const deposit = settingNumber(SETTINGS.depositAmount, 500);
 
   const btn = document.getElementById("send-whatsapp");
+  _bookingInFlight = true;
   btn.setAttribute("aria-busy","true");
   btn.disabled = true;
 
@@ -613,7 +621,7 @@ async function sendToWhatsApp(){
     const isoDate = toISO(selectedDate);
     try {
       await window.MarbellaStore.addBooking({
-        id: "BK" + Date.now().toString(36),
+        id: _bookingId || ("BK" + Date.now().toString(36)),
         unitId: currentUnit.id,
         unitName: currentUnit.name,
         date: isoDate,
@@ -635,6 +643,7 @@ async function sendToWhatsApp(){
 
   // إعادة تمكين الزر بعد الفتح
   setTimeout(()=>{
+    _bookingInFlight = false;
     btn.removeAttribute("aria-busy");
     btn.disabled = false;
   },600);

@@ -113,9 +113,7 @@ const UNITS = [
 
 /* ============================================================
    العروض — مُدمج الآن في SETTINGS.offer وقابل للإدارة من لوحة التحكم.
-   يُحتفظ بهذا المرجع للتوافق مع الكود القديم فقط.
    ============================================================ */
-const OFFERS = SETTINGS.offer;
 
 const TESTIMONIALS = [
   { name: "أبو محمد", nameEn: "Abu Mohammed", role: "ضيف دائم", roleEn: "Regular Guest", text: "استراحة نظيفة وخصوصية تامة، كرّرنا الحجز مرتين والخدمة ممتازة.", textEn: "Clean resort, total privacy. We booked twice, excellent service.", rating: 5 },
@@ -431,7 +429,10 @@ if(!window.MarbellaStore){
       if(!window.db && window.firebaseBootReady) await window.firebaseBootReady;
       if(!window.db) throw new Error("Firebase is not ready");
       b.createdAt = new Date().toISOString();
-      await db.collection("bookings").add(b);
+      // استخدم معرّف الحجز (BK...) كمعرّف للمستند ليكون الكتابة idempotent:
+      // أي إرسال مكرّر بنفس المعرّف يكتب فوق المستند نفسه بدل إنشاء حجز ثانٍ.
+      if(b.id){ await db.collection("bookings").doc(String(b.id)).set(b); }
+      else { await db.collection("bookings").add(b); }
     },
     async deleteBooking(id){
       if(!window.db) throw new Error("Firebase is not ready");

@@ -124,8 +124,6 @@ a{color:inherit;text-decoration:none}
 .tbl tr:hover td{background:var(--a-surface-2)}
 .tag{display:inline-block;padding:.2rem .6rem;border-radius:50px;font-size:.72rem;font-weight:600}
 .tag.new{background:#1f3a2a;color:var(--a-palm)}
-.tag.confirmed{background:#2a3a1f;color:var(--a-wa)}
-.tag.cancelled{background:#3a241f;color:var(--a-clay)}
 .tbl .row-actions{display:flex;gap:.4rem}
 .icon-btn{background:transparent;border:1px solid var(--a-line);color:var(--a-muted);width:32px;height:32px;border-radius:8px;cursor:pointer;display:grid;place-items:center;font-size:.8rem;transition:all .35s var(--ease-lux)}
 .icon-btn:hover{border-color:var(--a-brass);color:var(--a-brass);transform:translateY(-1px)}
@@ -171,7 +169,6 @@ a{color:inherit;text-decoration:none}
 .cal-tab.active{background:var(--a-brass);color:var(--a-bg);border-color:var(--a-brass);box-shadow:0 2px 8px rgba(194,154,62,.3)}
 
 /* ===== التبويبات ===== */
-.a-tabbar{display:flex;gap:.4rem;margin-bottom:1.4rem;flex-wrap:wrap}
 .section{display:none}
 .section.active{display:block;animation:secIn .5s var(--ease-out-quart)}
 @keyframes secIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
