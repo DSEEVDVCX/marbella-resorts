@@ -3,12 +3,33 @@
    ليل بترولي · رمل · نحاس · خط رقعة · مشربية
    ============================================================ */
 
-/* خط 29LT Bukra Bold لعنوان البطل */
+/* خط 29LT Bukra لعنوان البطل */
 @font-face{
   font-family:'29LT Bukra';
-  src:url("../assets/fonts/29lt-bukra-bold.otf") format("opentype");
+  src:url("../assets/fonts/29ltbukralight.ttf") format("truetype");
+  font-weight:300;
+  font-style:normal;
+  font-display:swap;
+}
+@font-face{
+  font-family:'29LT Bukra';
+  src:url("../assets/fonts/29ltbukraregular.ttf") format("truetype");
+  font-weight:400;
+  font-style:normal;
+  font-display:swap;
+}
+@font-face{
+  font-family:'29LT Bukra';
+  src:url("../assets/fonts/29ltbukrabold.ttf") format("truetype");
   font-weight:700;
   font-style:normal;
+  font-display:swap;
+}
+@font-face{
+  font-family:'29LT Bukra';
+  src:url("../assets/fonts/29ltbukrabolditalic.ttf") format("truetype");
+  font-weight:700;
+  font-style:italic;
   font-display:swap;
 }
 
