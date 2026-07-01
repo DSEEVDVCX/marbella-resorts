@@ -1,73 +1,73 @@
-# منتجعات ماربيلا — نظام الحجز الإلكتروني
+# Marbella Resorts — Online Booking System
 
-نظام حجز لاستراحات/شاليهات متعددة، يعمل على الجوال والحاسوب. جميع البيانات والتفضيلات مخزّنة في **Firebase** (Firestore + Authentication) — لا يُستخدم `localStorage`/`sessionStorage` أو كاش PWA نهائياً.
+A booking system for multiple chalets/resorts, working on mobile and desktop. All data and preferences are stored in **Firebase** (Firestore + Authentication) — no `localStorage`/`sessionStorage` or PWA cache is used at all.
 
-## المزايا
-- معرض صور لكل استراحة
-- موقع على خرائط جوجل
-- تقويم تفاعلي يعرض المواعيد المتاحة والمحجوزة
-- إرسال طلبات الحجز مباشرة عبر واتساب (اختيار الاستراحة والتاريخ)
-- تكامل مع وسائل التواصل (انستغرام، تيك توك، واتساب)
-- تصميم عربي RTL متجاوب بالكامل
-- واجهة متقدمة مع أنيميشن وتأثيرات بصرية
-- لوحة تحكم للأدمن محمية بـ Firebase Authentication
-- تفضيلات لكل زائر (الثيم، اللغة، المفضّلة) تُحفظ في Firestore عبر مصادقة مجهولة
+## Features
+- Image gallery for each resort
+- Google Maps location
+- Interactive calendar showing available and booked dates
+- Send booking requests directly via WhatsApp (choose the resort and date)
+- Social media integration (Instagram, TikTok, WhatsApp)
+- Fully responsive Arabic RTL design
+- Polished interface with animations and visual effects
+- Admin dashboard protected by Firebase Authentication
+- Per-visitor preferences (theme, language, favorites) saved in Firestore via anonymous authentication
 
-## بنية المشروع
+## Project Structure
 ```text
-index.html                  ← الصفحة الرئيسية (البطل، الاستراحات، الخريطة، التقويم)
-unit-details.html           ← صفحة تفاصيل الاستراحة + التقييمات
-faq.html                    ← الأسئلة الشائعة
-cancellation-policy.html     ← سياسة الإلغاء
-about.html                  ← من نحن
-admin.html                  ← لوحة التحكم (محمية بـ Firebase Auth)
+index.html                  ← Home page (hero, resorts, map, calendar)
+unit-details.html           ← Resort details page + reviews
+faq.html                    ← Frequently asked questions
+cancellation-policy.html     ← Cancellation policy
+about.html                  ← About us
+admin.html                  ← Admin dashboard (protected by Firebase Auth)
 css/
-  ├── style.css             ← التنسيق الرئيسي
-  └── admin.css             ← تنسيق لوحة التحكم
+  ├── style.css             ← Main styling
+  └── admin.css             ← Dashboard styling
 js/
-  ├── firebase-loader.js    ← مُحمِّل Firebase المركزي (يحقن وسميات CDN + utils + الإعداد + data.js)
-  ├── utils.js              ← أدوات عامة (esc() لتهريب HTML ومنع XSS)
-  ├── firebase-config.js    ← إعداد Firebase + بريد الأدمن (ADMIN_EMAIL) + تفعيل offline persistence
-  ├── theme-init.js         ← تفادي وميض الثيم (يُحمّل في <head> كل صفحة)
-  ├── data.js               ← البيانات الافتراضية + طبقة MarbellaStore (Firestore/Auth)
-  ├── shared.js             ← أدوات مشتركة (اللغة، الثيم، التنقل، Lightbox بفخ تركيز)
-  ├── app.js                ← منطق الصفحة الرئيسية (التقويم، واتساب، الواجهة)
-  ├── unit-details.js       ← منطق صفحة التفاصيل (المعرض، التقييمات)
-  ├── faq.js                ← منطق صفحة الأسئلة الشائعة
-  ├── cancellation-policy.js ← منطق صفحة سياسة الإلغاء
-  ├── about.js              ← تهيئة صفحة من نحن
-  └── admin.js              ← منطق لوحة التحكم (CRUD + Auth)
-assets/images/              ← صور الاستراحات والشعار
+  ├── firebase-loader.js    ← Central Firebase loader (injects CDN SDKs + utils + config + data.js)
+  ├── utils.js              ← General utilities (esc() for HTML escaping / XSS prevention)
+  ├── firebase-config.js    ← Firebase config + admin email (ADMIN_EMAIL) + offline persistence
+  ├── theme-init.js         ← Prevents theme flash (loaded in <head> on every page)
+  ├── data.js               ← Default data + the store layer (Firestore/Auth)
+  ├── shared.js             ← Shared utilities (language, theme, navigation, focus-trapped lightbox)
+  ├── app.js                ← Home page logic (calendar, WhatsApp, UI)
+  ├── unit-details.js       ← Details page logic (gallery, reviews)
+  ├── faq.js                ← FAQ page logic
+  ├── cancellation-policy.js ← Cancellation policy page logic
+  ├── about.js              ← About page initialization
+  └── admin.js              ← Dashboard logic (CRUD + Auth)
+assets/images/              ← Resort images and logo
 ```
 
-## التشغيل محلياً
-افتح `index.html` في المتصفح، أو شغّل خادماً محلياً:
+## Running Locally
+Open `index.html` in a browser, or run a local server:
 ```powershell
 python -m http.server 8000
 ```
-ثم زر: `http://localhost:8000`
+Then visit: `http://localhost:8000`
 
-> ملاحظة: تحتاج الصفحات إلى اتصال بالإنترنت لتحميل Firebase وتحميل/حفظ البيانات من Firestore.
+> Note: the pages need an internet connection to load Firebase and to load/save data from Firestore.
 
-## إعداد Firebase (مطلوب مرة واحدة)
-1. أنشئ مشروعاً على [Firebase Console](https://console.firebase.google.com/) وضع قيم `firebaseConfig` في `js/firebase-config.js` (موجودة مسبقاً).
-2. **Authentication ← Sign-in method** فعّل:
-   - **Email/Password** (لحساب الأدمن).
-   - **Anonymous** (مطلوب لـ: تفضيلات الزوار الثيم/اللغة/المفضّلة **وإرسال الحجوزات والتقييمات**). إذا عطّلته، فلن تُحفظ الحجوزات في Firestore ولن يراها الأدمن رغم إرسالها عبر واتساب.
-3. **Authentication ← Users** أنشئ مستخدماً ببريد وكلمة مرور. يجب أن يطابق البريد قيمة `ADMIN_EMAIL` في `js/firebase-config.js` (الافتراضي `admin@marbella-resorts.com` — عدّله إلى بريد تملكه إن أردت استعادة كلمة المرور لاحقاً).
-4. **Firestore Database** أنشئ قاعدة البيانات. ستُزرع الإعدادات والاستراحات تلقائياً عند أول تشغيل.
-5. **ImgBB** (لرفع صور الاستراحات) احصل على مفتاح API مجاني من [api.imgbb.com](https://api.imgbb.com/) وأدخله من لوحة التحكم ← الإعدادات ← «مفتاح ImgBB API». (لا حاجة لتفعيل Firebase Storage — انظر قسم «رفع الصور» أدناه).
+## Firebase Setup (one-time)
+1. Create a project in the [Firebase Console](https://console.firebase.google.com/) and put the `firebaseConfig` values in `js/firebase-config.js` (already present).
+2. **Authentication → Sign-in method**, enable:
+   - **Email/Password** (for the admin account).
+   - **Anonymous** (required for: visitor preferences theme/language/favorites **and for submitting bookings and reviews**). If you disable it, bookings will not be saved in Firestore and the admin will not see them even though they are sent via WhatsApp.
+3. **Authentication → Users**, create a user with an email and password. The email must match the `ADMIN_EMAIL` value in `js/firebase-config.js` (default `admin@marbella-resorts.com` — change it to an email you own if you want to be able to reset the password later).
+4. **Firestore Database**, create the database. Settings and resorts are seeded automatically on first run.
+5. **ImgBB** (for uploading resort images), get a free API key from [api.imgbb.com](https://api.imgbb.com/) and enter it in Dashboard → Settings → "ImgBB API Key". (No need to enable Firebase Storage — see the "Uploading Images" section below.)
 
-### مجموعات Firestore المستخدمة
-| المجموعة | الوثيقة | الغرض |
+### Firestore Collections Used
+| Collection | Document | Purpose |
 |---|---|---|
-| `settings` | `main` | الإعدادات العامة (العلامة، واتساب، روابط…) |
-| `units` | `{unitId}` | بيانات الاستراحات + التواريخ المحجوزة + الإعجابات |
-| `bookings` | تلقائية | طلبات الحجز |
-| `reviews` | تلقائية | تقييمات الضيوف |
-| `users` | `{uid}` | تفضيلات الزائر/الأدمن (lang, theme, favorites) |
+| `settings` | `main` | General settings (brand, WhatsApp, links…) |
+| `units` | `{unitId}` | Resort data + booked dates + likes |
+| `bookings` | auto | Booking requests |
+| `reviews` | auto | Guest reviews |
+| `users` | `{uid}` | Visitor/admin preferences (lang, theme, favorites) |
 
-### قواعد أمان Firestore المقترحة
+### Recommended Firestore Security Rules
 ```
 rules_version = '2';
 service cloud.firestore {
@@ -108,13 +108,13 @@ service cloud.firestore {
 
     match /units/{id} {
       allow read: if true;
-      // الكتابة للأدمن فقط. (إن أردت السماح بتحديث الإعجابات/التواريخ من الموقع فعّل السطر التالي بدلاً منه)
+      // Write is admin-only. (If you want to allow updating likes/dates from the site, enable the alternative below instead.)
       allow write: if isAdmin();
     }
 
     match /bookings/{id} {
       allow read: if isAdmin();
-      allow create: if isSignedIn() && validBooking(request.resource.data);   // الزوار المسجّلون كمجهولين يمكنهم إرسال طلب
+      allow create: if isSignedIn() && validBooking(request.resource.data);   // anonymously signed-in visitors can submit a request
       allow delete, update: if isAdmin();
     }
 
@@ -132,34 +132,33 @@ service cloud.firestore {
   }
 }
 ```
-> ملاحظة: عند جعل كتابة `units` للأدمن فقط، لن تُحدّث الإعجابات/التواريخ تلقائياً من الموقع (وهو الأأمن). يمكن للأدمن إدارة التواريخ المحجوزة من لوحة التحكم.
+> Note: when `units` writes are admin-only, likes/dates will not update automatically from the site (which is the safest option). The admin can manage booked dates from the dashboard.
 
-### رفع صور الاستراحات (عبر ImgBB — مجاني تماماً)
-يستخدم المشروع **ImgBB** لرفع صور الاستراحات بدل Firebase Storage (مجاني تماماً، مساحة غير محدودة، لا يطلب بطاقة بنكية). المفتاح يُخزَّن في `SETTINGS.imgbbKey` (في Firestore تحت `settings/main`).
+### Uploading Resort Images (via ImgBB — completely free)
+The project uses **ImgBB** to upload resort images instead of Firebase Storage (completely free, unlimited space, no credit card required). The key is stored in `SETTINGS.imgbbKey` (in Firestore under `settings/main`).
 
-#### الحصول على مفتاح ImgBB مجاني
-1. افتح [api.imgbb.com](https://api.imgbb.com/) ← سجّل/سجّل الدخول بحساب Google أو بريد.
-2. اضغط **Get API key** ← انسخ **API Key**.
-3. في لوحة التحكم ← تبويب **الإعدادات** ← الصق المفتاح في حقل **«مفتاح ImgBB API (لرفع الصور)»** ← احفظ.
+#### Getting a free ImgBB key
+1. Open [api.imgbb.com](https://api.imgbb.com/) → sign up / log in with a Google account or email.
+2. Click **Get API key** → copy the **API Key**.
+3. In Dashboard → **Settings** tab → paste the key into the **"ImgBB API Key (for image uploads)"** field → save.
 
-> ملاحظات:
-> - رفع الصور يتم من المتصفح مباشرةً إلى ImgBB عبر `https://api.imgbb.com/1/upload`؛ لا حاجة لتفعيل Firebase Storage.
-> - ImgBB المجاني لا يدعم حذف الصور عبر API؛ عند حذف صورة من لوحة التحكم تُزال الإشارة من بيانات الاستراحة فقط (يبقى الملف على خادم ImgBB). لرابط الحذف اختياري يُخزَّن في الاستجابة لكنه يتطلب استدعاء متصفح.
-> - حدود ImgBB المجانية سخية (رفع حتى 32MB/صورة، ~300 رفع/دقيقة) — تكفي موقعاً بهذا الحجم براحة.
+> Notes:
+> - Images are uploaded directly from the browser to ImgBB via `https://api.imgbb.com/1/upload`; no need to enable Firebase Storage.
+> - Free ImgBB does not support deleting images via API; when you delete an image from the dashboard, only the reference is removed from the resort data (the file stays on ImgBB's server). An optional delete link is stored in the response but requires a browser call.
+> - Free ImgBB limits are generous (upload up to 32MB/image, ~300 uploads/minute) — plenty for a site of this size.
 
-## التخصيص
-- لتعديل الإعدادات والاستراحات بسرعة: `js/data.js` يحتوي المصفوفات الافتراضية (`SETTINGS`, `UNITS`) التي تُزرع في Firestore عند أول تشغيل. بعدها تُدار البيانات من لوحة التحكم.
-- لتغيير الشعار: استبدل `assets/images/logo.png`.
+## Customization
+- To quickly edit settings and resorts: `js/data.js` contains the default arrays (`SETTINGS`, `UNITS`) that are seeded into Firestore on first run. After that, data is managed from the dashboard.
+- To change the logo: replace `assets/images/logo.png`.
 
-## لوحة التحكم
-افتح `admin.html`. الدخول عبر حساب الأدمن (Email/Password) في Firebase Authentication.
-- إدارة التواريخ المحجوزة، تعديل الأسعار والأوصاف، سجل الحجوزات، تصدير CSV، الإعدادات العامة، تغيير كلمة المرور.
-- عرض وحذف تقييمات الضيوف (قسم «التقييمات»).
-- رفع/إزالة صور الاستراحات عبر ImgBB من نافذة تعديل الاستراحة (المفتاح من الإعدادات).
-- «نسيت كلمة المرور؟» يرسل رابط استعادة عبر البريد المسجّل في `ADMIN_EMAIL`.
+## Admin Dashboard
+Open `admin.html`. Log in with the admin account (Email/Password) in Firebase Authentication.
+- Manage booked dates, edit prices and descriptions, booking history, CSV export, general settings, change password.
+- View and delete guest reviews (the "Reviews" section).
+- Upload/remove resort images via ImgBB from the resort edit dialog (key from Settings).
+- "Forgot password?" sends a recovery link to the email registered in `ADMIN_EMAIL`.
 
-## النشر
-المشروع صفحات ثابتة — يصلح للنشر على GitHub Pages أو Firebase Hosting أو أي استضافة ثابتة.
+## Deployment
+The project is static pages — suitable for deployment on GitHub Pages, Firebase Hosting, or any static host.
 
-> **ملاحظة حول CSP:** `js/firebase-loader.js` يحقن وسميات Firebase عبر `document.write` أثناء التحليل الأولي. لا يوجد CSP حالياً. إن أضفت سياسة أمان محتوى لاحقاً (موصى بها على Firebase Hosting عبر `firebase.json`/`_headers`)، يجب أن تسمح `script-src` بـ `https://www.gstatic.com` و `'self'`، وألا تمنع السكربتات المُدرجة عبر المُحلّل (parser-inserted) — وإلا فلن يُحمَّل Firebase ويصبح الموقع غير وظيفي.
-
+> **Note about CSP:** `js/firebase-loader.js` injects the Firebase SDKs via `document.write` during initial parsing. There is no CSP currently. If you add a Content Security Policy later (recommended on Firebase Hosting via `firebase.json`/`_headers`), `script-src` must allow `https://www.gstatic.com` and `'self'`, and must not block parser-inserted scripts — otherwise Firebase will not load and the site becomes non-functional.
