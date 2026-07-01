@@ -13,15 +13,19 @@
   position:fixed;inset:0;z-index:9999;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:0;
-  background:radial-gradient(ellipse at 50% 120%, #1a2e36 0%, #0d1418 60%, #080d10 100%);
+  background:linear-gradient(180deg,#FBF7EC 0%,#F6E9D2 50%,#EFE7D6 100%);
   transition:opacity .6s cubic-bezier(0.32,0.72,0,1), visibility .6s cubic-bezier(0.32,0.72,0,1);
   overflow:hidden;
 }
+/* الثيم الداكن: سماء ليلية بنجوم */
+.theme-dark #app-loader{
+  background:radial-gradient(ellipse at 50% 120%, #1a2e36 0%, #0d1418 60%, #080d10 100%);
+}
 #app-loader.hide{opacity:0;visibility:hidden;pointer-events:none}
 
-/* ===== نجوم متلألئة ===== */
+/* ===== نجوم متلألئة (تظهر في الثيم الداكن فقط) ===== */
 #app-loader .al-stars{position:absolute;inset:0;pointer-events:none}
-#app-loader .al-star{
+.theme-dark #app-loader .al-star{
   position:absolute;width:2px;height:2px;border-radius:50%;
   background:#fff;opacity:0;
   animation:alTwinkle 3s ease-in-out infinite;
@@ -30,14 +34,26 @@
   0%,100%{opacity:0;transform:scale(.5)}
   50%{opacity:1;transform:scale(1.4);box-shadow:0 0 6px rgba(255,255,255,.6)}
 }
+/* الثيم الفاتح: جزيئات ذهبية عائمة بدل النجوم */
+#app-loader .al-star{
+  position:absolute;border-radius:50%;
+  background:#C29A3E;opacity:0;
+  animation:alFloat 4s ease-in-out infinite;
+}
+@keyframes alFloat{
+  0%,100%{opacity:0;transform:translateY(0) scale(.5)}
+  50%{opacity:.4;transform:translateY(-8px) scale(1)}
+}
 
-/* ===== نجم منطلق (shooting star) ===== */
-#app-loader .al-shoot{
+/* ===== نجم منطلق (shooting star) — الثيم الداكن فقط ===== */
+.theme-dark #app-loader .al-shoot{
   position:absolute;width:80px;height:1px;
   background:linear-gradient(90deg,transparent,rgba(255,255,255,.9),transparent);
   opacity:0;
   animation:alShoot 7s ease-in infinite;
 }
+#app-loader .al-shoot{display:none}
+.theme-dark #app-loader .al-shoot{display:block}
 @keyframes alShoot{
   0%{opacity:0;transform:translateX(0) translateY(0) rotate(-25deg)}
   3%{opacity:1}
@@ -64,12 +80,26 @@
   font-family:'29LT Bukra','Aref Ruqaa',serif;
   font-weight:700;font-style:normal;
   font-size:clamp(1.4rem,4vw,2.2rem);
-  color:#e7d6a8;text-align:center;line-height:1.5;
+  color:#7a5a14;text-align:center;line-height:1.5;
   max-width:520px;padding:0 1.5rem;margin-top:1.8rem;
-  text-shadow:0 0 20px rgba(194,154,62,0), 0 0 40px rgba(194,154,62,0);
+  text-shadow:0 0 20px rgba(194,154,62,0);
   animation:alTitleGlow 4s ease-in-out infinite;
 }
+.theme-dark #app-loader .al-title{color:#e7d6a8}
 @keyframes alTitleGlow{
+  0%,100%{
+    color:rgba(122,90,20,.55);
+    text-shadow:0 0 10px rgba(194,154,62,.1);
+  }
+  50%{
+    color:rgba(122,90,20,1);
+    text-shadow:0 0 20px rgba(194,154,62,.4), 0 0 40px rgba(194,154,62,.2);
+  }
+}
+.theme-dark #app-loader .al-title{
+  animation-name:alTitleGlowDark;
+}
+@keyframes alTitleGlowDark{
   0%,100%{
     color:rgba(231,214,168,.55);
     text-shadow:0 0 10px rgba(194,154,62,.1), 0 0 20px rgba(194,154,62,.05);
@@ -105,12 +135,13 @@
 /* ===== نص تحميل خافت ===== */
 #app-loader .al-text{
   position:relative;z-index:2;
-  color:rgba(231,214,168,.5);
+  color:rgba(122,90,20,.5);
   font-family:'IBM Plex Sans Arabic',system-ui,sans-serif;
   font-size:.78rem;letter-spacing:.15em;
   margin-top:1rem;
   animation:alTextPulse 2s ease-in-out infinite;
 }
+.theme-dark #app-loader .al-text{color:rgba(231,214,168,.5)}
 @keyframes alTextPulse{
   0%,100%{opacity:.3}
   50%{opacity:.7}
