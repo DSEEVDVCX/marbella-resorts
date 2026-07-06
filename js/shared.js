@@ -319,6 +319,8 @@ function _lbFocusables(){
   return [...lb.querySelectorAll('button, [href], input, [tabindex]:not([tabindex="-1"])')].filter(el=>!el.disabled && el.offsetParent!==null);
 }
 function openLightbox(images, startIdx){
+  images = getImageList(images);
+  if(!images.length) return;
   _lbState.imgs = images; _lbState.idx = startIdx || 0;
   _lbState.lastFocus = document.activeElement;
   let lb = document.getElementById("lightbox");
@@ -331,7 +333,7 @@ function openLightbox(images, startIdx){
     lb.innerHTML = `
       <button class="lb-close" aria-label="إغلاق"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
       <button class="lb-nav prev" aria-label="السابق"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
-      <img src="" alt="معاينة الصورة" />
+      <img src="" alt="معاينة الصورة" data-fallback />
       <button class="lb-nav next" aria-label="التالي"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
       <div class="lb-counter"></div>`;
     document.body.appendChild(lb);
@@ -367,11 +369,15 @@ function openLightbox(images, startIdx){
 }
 function _lbRender(){
   const lb = document.getElementById("lightbox");
-  lb.querySelector("img").src = _lbState.imgs[_lbState.idx];
+  const img = lb.querySelector("img");
+  img.dataset.fallbackApplied = "0";
+  img.src = getImageSrc(_lbState.imgs[_lbState.idx]);
   lb.querySelector(".lb-counter").textContent = (_lbState.idx+1) + " / " + _lbState.imgs.length;
   lb.setAttribute("aria-label", "صورة " + (_lbState.idx+1) + " من " + _lbState.imgs.length);
+  wireImageFallbacks(lb);
 }
 function _lbNav(dir){
+  if(!_lbState.imgs.length) return;
   _lbState.idx = (_lbState.idx + dir + _lbState.imgs.length) % _lbState.imgs.length;
   _lbRender();
 }

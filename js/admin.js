@@ -299,7 +299,7 @@ function editUnit(id){
       <label>صور الاستراحة</label>
       <div class="e-gallery-grid" id="e-gallery">
         ${(u.images||[]).map((src,i)=>`<div class="e-thumb" data-src="${esc(src)}">
-          <img src="${esc(src)}" alt="صورة ${i+1}" loading="lazy"/>
+          <img src="${esc(getImageSrc(src))}" alt="صورة ${i+1}" loading="lazy" data-fallback/>
           <button type="button" class="e-thumb-del" data-del="${i}" aria-label="حذف الصورة"><i class="fa-solid fa-xmark"></i></button>
         </div>`).join("")}
       </div>
@@ -315,6 +315,7 @@ function editUnit(id){
       <button class="a-btn ghost" id="e-cancel">إلغاء</button>
     </div></div>`;
   document.body.appendChild(wrap);
+  wireImageFallbacks(wrap);
   wrap.querySelector("#e-cancel").addEventListener("click",()=>wrap.remove());
 
   // ===== إدارة صور الاستراحة =====
@@ -455,7 +456,6 @@ function renderSettings(){
   document.getElementById("s-intro").value=s.introMessage||"";
   if(document.getElementById("s-email")) document.getElementById("s-email").value=s.email||"";
   if(document.getElementById("s-bank")) document.getElementById("s-bank").value=s.bankAccount||"";
-  if(document.getElementById("s-imgbb")) document.getElementById("s-imgbb").value=s.imgbbKey||"";
   if(document.getElementById("s-deposit")) document.getElementById("s-deposit").value=s.depositAmount||"";
   if(document.getElementById("s-pledge")) document.getElementById("s-pledge").value=s.pledgeText||"";
   renderLogoPicker(s.logoPath || "assets/images/logo.png");
@@ -509,7 +509,6 @@ document.getElementById("settings-form").addEventListener("submit",async e=>{
   s.introMessage=document.getElementById("s-intro").value.trim();
   if(document.getElementById("s-email")) s.email=document.getElementById("s-email").value.trim();
   if(document.getElementById("s-bank")) s.bankAccount=document.getElementById("s-bank").value.trim();
-  if(document.getElementById("s-imgbb")) s.imgbbKey=document.getElementById("s-imgbb").value.trim();
   const logoChoice = document.querySelector('input[name="logo-choice"]:checked');
   if(logoChoice) s.logoPath = logoChoice.value;
   if(document.getElementById("s-deposit")){

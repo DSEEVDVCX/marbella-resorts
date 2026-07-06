@@ -503,8 +503,18 @@ if(!window.MarbellaStore){
         throw new Error("استجابة ImgBB غير متوقعة");
       }
       if(typeof onProgress === "function"){ onProgress(100); }
-      // نُرجع الرابط المعروض و(اختيارياً رابط الحذف إن وفّرته الاستجابة)
-      return { url: data.data.url, deleteUrl: data.data.delete_url || null };
+      const variants = data.data;
+      const directUrl = variants.display_url || (variants.image && variants.image.url) || variants.url;
+      // نُرجع الرابط الأكثر ملاءمة للعرض مع بدائل من استجابة ImgBB عند توفرها.
+      return {
+        url: directUrl,
+        displayUrl: variants.display_url || null,
+        imageUrl: variants.image && variants.image.url ? variants.image.url : null,
+        thumbUrl: variants.thumb && variants.thumb.url ? variants.thumb.url : null,
+        mediumUrl: variants.medium && variants.medium.url ? variants.medium.url : null,
+        deleteUrl: variants.delete_url || null,
+        id: variants.id || null
+      };
     },
     // ImgBB لا يدعم الحذف المجاني عبر API — نكتفي بإزالة الرابط من الواجهة
     async deleteImage(url){

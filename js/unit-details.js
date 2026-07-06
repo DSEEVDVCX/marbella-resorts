@@ -62,15 +62,15 @@ bootstrapPage(() => {
     const beds = isEn && unit.bedsEn ? unit.bedsEn : unit.beds;
     const baths = isEn && unit.bathsEn ? unit.bathsEn : unit.baths;
     const featuresList = (isEn ? (unit.featuresEn || unit.features) : unit.features) || [];
-    const images = unit.images || [];
-    const mainImgSrc = images[0] || "";
+    const images = getImageList(unit.images);
+    const mainImgSrc = getImageSrc(images[0]);
 
     const features = featuresList
       .map(f => `<span class="chip"><i class="fa-solid fa-check" aria-hidden="true"></i>${esc(f)}</span>`)
       .join("");
 
     const gallery = images
-      .map((src, i) => `<figure class="dg-thumb"><img src="${esc(src)}" alt="${esc(name)} ${i + 1}" loading="lazy" data-idx="${i}"/></figure>`)
+      .map((src, i) => `<figure class="dg-thumb"><img src="${esc(src)}" alt="${esc(name)} ${i + 1}" loading="lazy" data-idx="${i}" data-fallback/></figure>`)
       .join("");
 
     const similar = UNITS.filter(u => u.id !== unit.id).map(u => {
@@ -78,7 +78,7 @@ bootstrapPage(() => {
       const simCurrency = isEn ? (u.currencyEn || u.currency) : u.currency;
       return `
         <a class="sim-card" href="unit-details.html?id=${encodeURIComponent(u.id)}">
-          <img src="${esc((u.images || [])[0] || "")}" alt="${esc(simName)}" loading="lazy" width="200" height="140"/>
+          <img src="${esc(getImageSrc(getImageList(u.images)[0]))}" alt="${esc(simName)}" loading="lazy" width="200" height="140" data-fallback/>
           <span class="sim-name">${esc(simName)}</span>
           <span class="sim-price">${formatPrice(u.price, simCurrency)}</span>
         </a>`;
@@ -88,7 +88,7 @@ bootstrapPage(() => {
       <div class="detail-grid">
         <div class="detail-main">
           <div class="detail-gallery reveal">
-            <figure class="dg-main"><img src="${esc(mainImgSrc)}" alt="${esc(name)}" id="dg-main-img" data-idx="0"/></figure>
+            <figure class="dg-main"><img src="${esc(mainImgSrc)}" alt="${esc(name)}" id="dg-main-img" data-idx="0" data-fallback/></figure>
             <div class="dg-thumbs">${gallery}</div>
           </div>
           <div class="detail-specs reveal" data-delay="1">
@@ -134,6 +134,7 @@ bootstrapPage(() => {
       </section>`;
 
     if(typeof window.applyRevealEffects === "function") window.applyRevealEffects(detail);
+    wireImageFallbacks(detail);
     bindDetailEvents(unit, isEn);
     renderReviews(unit, isEn);
   }
@@ -143,12 +144,17 @@ bootstrapPage(() => {
     if(mainImg){
       document.querySelectorAll(".dg-thumb img").forEach(th => {
         th.addEventListener("click", () => {
+          mainImg.dataset.fallbackApplied = "0";
           mainImg.src = th.src;
           mainImg.dataset.idx = th.dataset.idx;
         });
       });
-      mainImg.addEventListener("click", () => openLightbox(unit.images || [], parseInt(mainImg.dataset.idx, 10) || 0));
-      mainImg.style.cursor = "zoom-in";
+      const images = getImageList(unit.images);
+      mainImg.addEventListener("click", () => {
+        if(!images.length || mainImg.dataset.fallbackApplied === "1") return;
+        openLightbox(images, parseInt(mainImg.dataset.idx, 10) || 0);
+      });
+      mainImg.style.cursor = images.length ? "zoom-in" : "default";
     }
 
     const bookBtn = $("book-this");

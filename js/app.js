@@ -118,7 +118,7 @@ function renderUnits(filterFn){
     const capacity = isEn ? (u.capacityEn || u.capacity) : u.capacity;
     const currency = isEn ? (u.currencyEn || u.currency) : u.currency;
     const featsList = (isEn ? (u.featuresEn || u.features) : u.features) || [];
-    const imgs = u.images || [];
+    const imgs = getImageList(u.images);
     
     const features = featsList.map(f=>`<span class="chip"><i class="fa-solid fa-check"></i>${esc(f)}</span>`).join("");
     const dots = imgs.map((_,i)=>`<span${i===0?' class="active"':''}></span>`).join("");
@@ -140,7 +140,7 @@ function renderUnits(filterFn){
     return `
     <article class="unit-card">
       <div class="unit-gallery" id="gal-${esc(u.id)}">
-        <img src="${esc(imgs[0] || 'assets/images/placeholder.jpg')}" alt="${esc(name)}" width="400" height="250" loading="lazy" />
+        <img src="${esc(getImageSrc(imgs[0]))}" alt="${esc(name)}" width="400" height="250" loading="lazy" data-fallback />
         <span class="unit-prices">${priceHTML}</span>
         
         <div class="likes-badge">
@@ -206,17 +206,20 @@ function renderUnits(filterFn){
 
   // معرض الصور (تبديل يدوي)
   list.forEach(u=>{
+    const imgs = getImageList(u.images);
     const img = document.querySelector(`#gal-${u.id} img`);
     document.querySelector(`#gal-${u.id} .gal-next`).addEventListener("click",(e)=>{e.stopPropagation();switchImg(u,img,1);});
     document.querySelector(`#gal-${u.id} .gal-prev`).addEventListener("click",(e)=>{e.stopPropagation();switchImg(u,img,-1);});
     // فتح Lightbox عند النقر على الصورة
     img.addEventListener("click",()=>{
-      const idx = u.images.indexOf(img.getAttribute("src"));
-      openLightbox(u.images, idx<0?0:idx);
+      if(!imgs.length || img.dataset.fallbackApplied === "1") return;
+      const idx = imgs.indexOf(img.getAttribute("src"));
+      openLightbox(imgs, idx<0?0:idx);
     });
-    img.style.cursor = "zoom-in";
+    img.style.cursor = imgs.length ? "zoom-in" : "default";
   });
   initImgShimmer();
+  wireImageFallbacks(grid);
 }
 
 /* ===== قسم المفضّلة ===== */
@@ -242,11 +245,11 @@ function renderFavorites(){
   if(empty) empty.hidden = true;
   grid.innerHTML = favUnits.map(u => {
     const features = (u.features||[]).map(f=>`<span class="chip"><i class="fa-solid fa-check"></i>${esc(f)}</span>`).join("");
-    const imgs = u.images || [];
+    const imgs = getImageList(u.images);
     return `
     <article class="unit-card">
       <div class="unit-gallery">
-        <img src="${esc(imgs[0] || 'assets/images/placeholder.jpg')}" alt="صورة ${esc(u.name)}" width="400" height="250" loading="lazy" />
+        <img src="${esc(getImageSrc(imgs[0]))}" alt="صورة ${esc(u.name)}" width="400" height="250" loading="lazy" data-fallback />
         <span class="unit-price">${esc(u.price)} <small>${esc(u.currency)}/الليلة</small></span>
         <button class="fav-btn on" data-fav="${esc(u.id)}" aria-label="إزالة من المفضّلة" aria-pressed="true"><i class="fa-solid fa-heart"></i></button>
       </div>
@@ -274,6 +277,7 @@ function renderFavorites(){
   grid.querySelectorAll("[data-book]").forEach(btn=>{
     btn.addEventListener("click",()=>openBooking(btn.dataset.book));
   });
+  wireImageFallbacks(grid);
 }
 
 /* ===== عدّاد العروض التنازلي =====
@@ -365,10 +369,14 @@ async function renderTestimonials(){
 
 
 function switchImg(u,img,dir){
+  const imgs = getImageList(u.images);
+  if(!imgs.length) return;
   const gal = img.closest(".unit-gallery");
-  let idx = u.images.indexOf(img.getAttribute("src"));
-  idx = (idx + dir + u.images.length) % u.images.length;
-  img.setAttribute("src",u.images[idx]);
+  let idx = imgs.indexOf(img.getAttribute("src"));
+  if(idx < 0) idx = 0;
+  idx = (idx + dir + imgs.length) % imgs.length;
+  img.dataset.fallbackApplied = "0";
+  img.setAttribute("src",imgs[idx]);
   if(gal){
     gal.querySelectorAll(".gallery-dots span").forEach((d,i)=>d.classList.toggle("active",i===idx));
   }
