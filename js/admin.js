@@ -19,6 +19,36 @@ const LOGO_OPTIONS = [
   { label:"استوائي", path:"assets/images/logos/marbella-tropical.jpeg" }
 ];
 
+function seededRandom(seed){
+  return function(){
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+}
+
+function initLoginArt(){
+  const field = document.getElementById("login-particle-field");
+  if(!field || field.dataset.ready) return;
+  field.dataset.ready = "1";
+  const random = seededRandom(20260706);
+  const fragment = document.createDocumentFragment();
+  for(let i = 0; i < 34; i++){
+    const dot = document.createElement("span");
+    const x = 8 + random() * 84;
+    const y = 8 + random() * 84;
+    const size = 3 + random() * 8;
+    const delay = -random() * 18;
+    const duration = 11 + random() * 12;
+    const driftX = Math.cos((i + 1) * 1.618) * (18 + random() * 34);
+    const driftY = Math.sin((i + 1) * 1.414) * (18 + random() * 34);
+    dot.style.cssText = `--x:${x}%;--y:${y}%;--s:${size}px;--dx:${driftX}px;--dy:${driftY}px;--d:${duration}s;--delay:${delay}s;`;
+    fragment.appendChild(dot);
+  }
+  field.appendChild(fragment);
+}
+
+initLoginArt();
+
 function bookingVal(b, key){
   return String((b && b[key] != null) ? b[key] : "");
 }

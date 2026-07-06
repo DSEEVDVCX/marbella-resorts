@@ -48,21 +48,38 @@ a{color:inherit;text-decoration:none}
 :focus-visible{outline:2px solid var(--a-brass);outline-offset:2px}
 
 /* ===== شاشة الدخول ===== */
-.login-wrap{min-height:100vh;display:grid;place-items:center;padding:1.5rem}
-.login-card{background:var(--a-surface);border:1px solid var(--a-line);border-radius:18px;padding:2.6rem;width:min(420px,100%);box-shadow:var(--shadow-lift),inset 0 1px 1px rgba(255,255,255,.06);position:relative;overflow:hidden;animation:loginIn .7s var(--ease-out-quart) both}
-.login-card::before{content:"";position:absolute;inset-block-start:0;inset-inline:0;height:2px;background:linear-gradient(90deg,transparent,var(--a-brass),transparent)}
+.login-wrap{min-height:100vh;display:grid;place-items:center;padding:1.5rem;isolation:isolate;overflow:hidden;background:radial-gradient(circle at 50% 18%,rgba(194,154,62,.08),transparent 30%),linear-gradient(145deg,#071015 0%,#0b171b 45%,#13272d 100%)}
+.login-art{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.login-art::before{content:"";position:absolute;inset:-20%;background:conic-gradient(from 110deg at 50% 50%,transparent 0 16%,rgba(194,154,62,.11) 22%,transparent 31%,rgba(62,167,92,.08) 48%,transparent 58%,rgba(231,214,168,.08) 72%,transparent 88%);filter:blur(48px);opacity:.8;animation:fieldDrift 24s linear infinite}
+.login-art::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(0deg,rgba(255,255,255,.018) 1px,transparent 1px);background-size:72px 72px;mask-image:radial-gradient(circle at 50% 48%,#000 0 46%,transparent 76%);opacity:.65;animation:gridFloat 16s var(--ease-lux) infinite alternate}
+.login-flow{position:absolute;border:1px solid rgba(231,214,168,.14);border-radius:48% 52% 46% 54%;box-shadow:0 0 70px rgba(194,154,62,.13),inset 0 0 55px rgba(62,167,92,.06);opacity:.72;transform-origin:center;animation:orbitalFlow 18s var(--ease-lux) infinite alternate}
+.flow-one{width:760px;height:420px;inset-block-start:8%;inset-inline-start:50%;translate:-50% 0;rotate:-9deg}
+.flow-two{width:520px;height:660px;inset-block-end:-18%;inset-inline-end:-7%;rotate:17deg;animation-duration:22s;animation-delay:-6s}
+.flow-three{width:420px;height:300px;inset-block-start:18%;inset-inline-start:-8%;rotate:28deg;animation-duration:15s;animation-delay:-3s}
+.login-particle-field{position:absolute;inset:0;background-image:radial-gradient(circle,rgba(231,214,168,.62) 0 1px,transparent 1.6px),radial-gradient(circle,rgba(62,167,92,.42) 0 1px,transparent 1.7px);background-size:92px 92px,136px 136px;background-position:0 0,38px 22px;mask-image:radial-gradient(ellipse at center,#000 0 50%,transparent 78%);opacity:.32;animation:particleCurrent 21s linear infinite}
+.login-particle-field span{position:absolute;inset-block-start:var(--y);inset-inline-start:var(--x);width:var(--s);height:var(--s);border-radius:50%;background:radial-gradient(circle,rgba(231,214,168,.95),rgba(194,154,62,.15) 62%,transparent 72%);box-shadow:0 0 18px rgba(194,154,62,.34);animation:seededParticle var(--d) ease-in-out var(--delay) infinite alternate}
+.login-card{background:linear-gradient(155deg,rgba(21,36,43,.86),rgba(12,23,28,.92));border:1px solid rgba(231,214,168,.18);border-radius:26px;padding:2.8rem;width:min(430px,100%);box-shadow:0 18px 80px rgba(0,0,0,.42),0 0 0 1px rgba(255,255,255,.04) inset,0 0 80px rgba(194,154,62,.08);position:relative;overflow:hidden;animation:loginIn .7s var(--ease-out-quart) both;backdrop-filter:blur(18px)}
+.login-card::before{content:"";position:absolute;inset-block-start:0;inset-inline:12%;height:2px;background:linear-gradient(90deg,transparent,var(--a-brass),var(--a-brass-soft),transparent);box-shadow:0 0 18px rgba(194,154,62,.7)}
+.login-card::after{content:"";position:absolute;width:220px;height:220px;inset-block-start:-95px;inset-inline-end:-95px;background:radial-gradient(circle,rgba(194,154,62,.18),transparent 64%);opacity:.9}
+.login-card > *{position:relative;z-index:1}
 @keyframes loginIn{from{opacity:0;transform:translateY(24px) scale(.97)}to{opacity:1;transform:none}}
-.login-logo{width:64px;height:64px;border-radius:12px;margin:0 auto 1.3rem;display:block;object-fit:contain;box-shadow:var(--glow-brass)}
-.login-card h1{text-align:center;font-size:1.45rem;margin-bottom:.3rem}
+.login-kicker{display:block;width:max-content;margin:0 auto 1rem;padding:.2rem .75rem;border:1px solid rgba(194,154,62,.22);border-radius:999px;color:var(--a-brass-soft);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;background:rgba(194,154,62,.06)}
+.login-logo{width:68px;height:68px;border-radius:18px;margin:0 auto 1.3rem;display:block;object-fit:contain;box-shadow:0 0 0 1px rgba(231,214,168,.24),0 18px 34px rgba(0,0,0,.28),var(--glow-brass);position:relative;z-index:1}
+.login-card h1{text-align:center;font-size:1.55rem;margin-bottom:.35rem;letter-spacing:-.02em}
 .login-card p{text-align:center;color:var(--a-muted);font-size:.85rem;margin-bottom:1.6rem}
 .login-card label{display:block;font-weight:600;margin-bottom:.4rem;font-size:.9rem}
-.login-card input{width:100%;padding:.8rem .95rem;background:var(--a-bg);border:1px solid var(--a-line);border-radius:10px;color:var(--a-text);font-family:inherit;font-size:.95rem;margin-bottom:.6rem;transition:border-color .35s var(--ease-lux),box-shadow .35s var(--ease-lux)}
-.login-card input:focus{outline:none;border-color:var(--a-brass);box-shadow:0 0 0 3px rgba(194,154,62,.15)}
+.login-card input{width:100%;padding:.9rem 1rem;background:rgba(11,20,25,.82);border:1px solid rgba(143,161,154,.22);border-radius:14px;color:var(--a-text);font-family:inherit;font-size:.95rem;margin-bottom:.6rem;transition:border-color .35s var(--ease-lux),box-shadow .35s var(--ease-lux),background .35s var(--ease-lux)}
+.login-card input:focus{outline:none;border-color:var(--a-brass);box-shadow:0 0 0 3px rgba(194,154,62,.15),0 0 28px rgba(194,154,62,.12);background:rgba(8,15,19,.96)}
 .login-hint{font-size:.75rem;color:var(--a-muted);text-align:center;margin-top:.8rem}
 .login-error{color:var(--a-clay);font-size:.8rem;margin-bottom:.6rem;min-height:1em}
 .link-reset{display:block;width:100%;margin-top:.6rem;background:none;border:0;color:var(--a-brass);font-family:inherit;font-size:.78rem;cursor:pointer;text-align:center;text-decoration:underline;padding:.3rem}
 .link-reset:hover{color:var(--a-brass-soft)}
 .login-info{font-size:.78rem;color:var(--a-palm);text-align:center;margin-top:.6rem;min-height:1em}
+@keyframes fieldDrift{to{transform:rotate(1turn)}}
+@keyframes gridFloat{from{transform:translate3d(-18px,-12px,0) scale(1)}to{transform:translate3d(18px,16px,0) scale(1.04)}}
+@keyframes orbitalFlow{from{transform:translate3d(-10px,12px,0) rotate(-4deg) scale(.98)}to{transform:translate3d(16px,-18px,0) rotate(6deg) scale(1.04)}}
+@keyframes particleCurrent{to{background-position:92px 184px,-98px 136px}}
+@keyframes seededParticle{from{transform:translate3d(0,0,0) scale(.72);opacity:.18}45%{opacity:.82}to{transform:translate3d(var(--dx),var(--dy),0) scale(1.18);opacity:.34}}
 
 /* ===== التخطيط ===== */
 .admin-layout[hidden]{display:none}
@@ -254,6 +271,10 @@ a{color:inherit;text-decoration:none}
 
 @media(max-width:768px){
   .main-area{padding:1.1rem}
+  .login-wrap{padding:1rem}
+  .login-card{padding:2.1rem 1.3rem;border-radius:22px}
+  .flow-one{width:560px;height:330px}
+  .flow-two{width:390px;height:520px}
   .admin-layout{grid-template-columns:1fr}
   .sidebar{position:static;height:auto;display:flex;overflow-x:auto;padding:1rem}
   .sidebar-brand{border:0;padding:0 .8rem 0 0;margin-inline-end:1rem}
