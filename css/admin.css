@@ -65,6 +65,7 @@ a{color:inherit;text-decoration:none}
 .login-info{font-size:.78rem;color:var(--a-palm);text-align:center;margin-top:.6rem;min-height:1em}
 
 /* ===== التخطيط ===== */
+.admin-layout[hidden]{display:none}
 .admin-layout{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
 .sidebar{background:var(--a-surface);border-inline-end:1px solid var(--a-line);padding:1.3rem 0;position:sticky;top:0;height:100vh;overflow-y:auto}
 .sidebar-brand{display:flex;align-items:center;gap:.65rem;padding:0 1.3rem 1.2rem;border-bottom:1px solid var(--a-line)}
