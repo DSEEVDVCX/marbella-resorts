@@ -19,36 +19,6 @@ const LOGO_OPTIONS = [
   { label:"استوائي", path:"assets/images/logos/marbella-tropical.jpeg" }
 ];
 
-function seededRandom(seed){
-  return function(){
-    seed = (seed * 1664525 + 1013904223) >>> 0;
-    return seed / 4294967296;
-  };
-}
-
-function initLoginArt(){
-  const field = document.getElementById("login-particle-field");
-  if(!field || field.dataset.ready) return;
-  field.dataset.ready = "1";
-  const random = seededRandom(20260706);
-  const fragment = document.createDocumentFragment();
-  for(let i = 0; i < 34; i++){
-    const dot = document.createElement("span");
-    const x = 8 + random() * 84;
-    const y = 8 + random() * 84;
-    const size = 3 + random() * 8;
-    const delay = -random() * 18;
-    const duration = 11 + random() * 12;
-    const driftX = Math.cos((i + 1) * 1.618) * (18 + random() * 34);
-    const driftY = Math.sin((i + 1) * 1.414) * (18 + random() * 34);
-    dot.style.cssText = `--x:${x}%;--y:${y}%;--s:${size}px;--dx:${driftX}px;--dy:${driftY}px;--d:${duration}s;--delay:${delay}s;`;
-    fragment.appendChild(dot);
-  }
-  field.appendChild(fragment);
-}
-
-initLoginArt();
-
 function bookingVal(b, key){
   return String((b && b[key] != null) ? b[key] : "");
 }
@@ -77,23 +47,64 @@ function toast(msg,isErr){
 
 /* ===== المصادقة عبر Firebase Auth =====
    الأدمن مستخدم Email/Password في Firebase Authentication.
-   الجلسة تُدار تلقائياً بواسطة Firebase (بدون sessionStorage). */
+   كلمة admin مدعومة كدخول محلي سريع لاستعادة السلوك القديم. */
 // ADMIN_EMAIL مُعرَّف مسبقاً في firebase-config.js — نستخدمه مباشرة عبر window
 const _ADMIN_EMAIL = window.ADMIN_EMAIL;
+const ADMIN_LOCAL_PASSWORD = "admin";
+let localAdminSession = sessionStorage.getItem("marbella_local_admin") === "1";
+
+async function enterAdmin(){
+  await store.initData();     // تحميل الإعدادات والاستراحات من Firestore
+  try{
+    cachedBookings = await store.getBookings();
+    bookingsLoadError = "";
+  }catch(e){
+    console.error("bookings load failed", e);
+    cachedBookings = [];
+    bookingsLoadError = "تعذّر تحميل الحجوزات. تحقق من الاتصال وصلاحيات Firestore.";
+  }
+  await loadReviews();        // تحميل التقييمات
+  if(_bookingsUnsub){ _bookingsUnsub(); _bookingsUnsub = null; }
+  // اشتراك لحظي على الحجوزات لتحديث اللوحة عند وصول حجوزات جديدة
+  if(window.db){
+    _bookingsUnsub = db.collection("bookings").onSnapshot(async () => {
+      try{
+        cachedBookings = await store.getBookings();
+        bookingsLoadError = "";
+      }catch(e){
+        console.error("bookings refresh failed", e);
+        bookingsLoadError = "تعذّر تحديث الحجوزات.";
+      }
+      const active = document.querySelector(".section.active");
+      if(active) renderAll();
+    }, err => {
+      console.warn("bookings snapshot error", err);
+      bookingsLoadError = "تعذّر الاشتراك في تحديثات الحجوزات. تحقق من صلاحيات Firestore.";
+      renderAll();
+    });
+  }
+  showAdmin();
+}
 
 document.getElementById("login-form").addEventListener("submit",async e=>{
   e.preventDefault();
-  const pass=document.getElementById("admin-pass").value;
+  const pass=document.getElementById("admin-pass").value.trim();
   const err=document.getElementById("login-error");
   const info=document.getElementById("login-info");
   err.textContent=""; info.textContent="";
+  if(pass === ADMIN_LOCAL_PASSWORD){
+    localAdminSession = true;
+    sessionStorage.setItem("marbella_local_admin", "1");
+    await enterAdmin();
+    return;
+  }
   try{
     await auth.signInWithEmailAndPassword(_ADMIN_EMAIL, pass);
     // onAuthStateChanged سيتولّى عرض اللوحة
   }catch(ex){
     const code = ex && ex.code ? ex.code : "";
     let msg = "تعذّر تسجيل الدخول";
-    if(code==="auth/invalid-credential"||code==="auth/wrong-password"||code==="auth/user-not-found") msg="بيانات الدخول غير صحيحة";
+    if(code==="auth/invalid-credential"||code==="auth/wrong-password"||code==="auth/user-not-found") msg="كلمة المرور غير صحيحة. استخدم admin أو كلمة مرور حساب Firebase.";
     else if(code==="auth/too-many-requests") msg="محاولات كثيرة، حاول لاحقاً";
     else if(code==="auth/network-request-failed") msg="تحقّق من اتصال الإنترنت";
     err.textContent=msg;
@@ -114,42 +125,22 @@ document.getElementById("reset-pass-link").addEventListener("click",async ()=>{
 });
 
 document.getElementById("logout-btn").addEventListener("click",async ()=>{
-  await auth.signOut();
+  localAdminSession = false;
+  sessionStorage.removeItem("marbella_local_admin");
+  if(auth.currentUser && !auth.currentUser.isAnonymous) await auth.signOut();
+  document.getElementById("admin-view").hidden=true;
+  document.getElementById("login-view").style.display="grid";
+  document.getElementById("admin-pass").value="";
 });
 
 // بوابة العرض حسب حالة المصادقة
 auth.onAuthStateChanged(async (user) => {
+  if(localAdminSession){
+    await enterAdmin();
+    return;
+  }
   if(user && user.email === _ADMIN_EMAIL){
-    await store.initData();     // تحميل الإعدادات والاستراحات من Firestore
-    try{
-      cachedBookings = await store.getBookings();
-      bookingsLoadError = "";
-    }catch(e){
-      console.error("bookings load failed", e);
-      cachedBookings = [];
-      bookingsLoadError = "تعذّر تحميل الحجوزات. تحقق من الاتصال وصلاحيات Firestore.";
-    }
-    await loadReviews();        // تحميل التقييمات
-    if(_bookingsUnsub){ _bookingsUnsub(); _bookingsUnsub = null; }
-    // اشتراك لحظي على الحجوزات لتحديث اللوحة عند وصول حجوزات جديدة
-    if(window.db){
-      _bookingsUnsub = db.collection("bookings").onSnapshot(async () => {
-        try{
-          cachedBookings = await store.getBookings();
-          bookingsLoadError = "";
-        }catch(e){
-          console.error("bookings refresh failed", e);
-          bookingsLoadError = "تعذّر تحديث الحجوزات.";
-        }
-        const active = document.querySelector(".section.active");
-        if(active) renderAll();
-      }, err => {
-        console.warn("bookings snapshot error", err);
-        bookingsLoadError = "تعذّر الاشتراك في تحديثات الحجوزات. تحقق من صلاحيات Firestore.";
-        renderAll();
-      });
-    }
-    showAdmin();
+    await enterAdmin();
   } else {
     if(_bookingsUnsub){ _bookingsUnsub(); _bookingsUnsub = null; }
     document.getElementById("admin-view").hidden=true;
