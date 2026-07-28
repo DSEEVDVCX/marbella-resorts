@@ -10,6 +10,10 @@ let cachedBookings = [];
 let _bookingsUnsub = null;
 let bookingsLoadError = "";
 
+/* الحجوزات التي مضى على تاريخها أكثر من هذه المدة تُحذف تلقائياً عند دخول اللوحة
+   (يبقى سجل حديث نظيف، وتبقى قراءات الحجوزات صغيرة بعيداً عن حدود الخطة المجانية) */
+const AUTO_PURGE_DAYS = 30;
+
 const LOGO_OPTIONS = [
   { label:"اللوقو الحالي", path:"assets/images/logo.png" },
   { label:"كلاسيك", path:"assets/images/logos/marbella-classic.jpeg" },
@@ -82,6 +86,7 @@ async function enterAdmin(){
     cachedBookings = [];
     bookingsLoadError = bookingsErrorMessage(e);
   }
+  purgeOldBookings();          // تنظيف تلقائي بالخلفية — لا يحجب اللوحة
   await loadReviews();        // تحميل التقييمات
   if(_bookingsUnsub){ _bookingsUnsub(); _bookingsUnsub = null; }
   // اشتراك لحظي على الحجوزات: نستخدم بيانات اللقطة مباشرة (لا جلب مكرر قد يفشل)
@@ -101,6 +106,33 @@ async function enterAdmin(){
     });
   }
   showAdmin();
+}
+
+/* تنظيف تلقائي: حذف الحجوزات التي مضى على تاريخها أكثر من AUTO_PURGE_DAYS يوماً.
+   يُستدعى بعد تحميل الحجوزات في اللوحة (الحذف صلاحية الأدمن بموجب القواعد).
+   يعمل بالخلفية ولا يحجب عرض اللوحة. */
+async function purgeOldBookings(){
+  if(!window.db || !Array.isArray(cachedBookings)) return;
+  const cutoff = new Date(); cutoff.setHours(0,0,0,0);
+  cutoff.setDate(cutoff.getDate() - AUTO_PURGE_DAYS);
+  const cutoffISO = toISO(cutoff);
+  // مقارنة نصوص ISO (YYYY-MM-DD) أبجدياً صحيحة زمنياً
+  const old = cachedBookings.filter(b=>{
+    const d = String(b.date || b.createdAt || "").slice(0,10);
+    return d && d < cutoffISO;
+  });
+  if(!old.length) return;
+  try{
+    for(let i=0;i<old.length;i+=400){          // حد 500 عملية لكل batch
+      const batch = db.batch();
+      old.slice(i,i+400).forEach(b=>batch.delete(db.collection("bookings").doc(String(b.id))));
+      await batch.commit();
+    }
+    const removed = new Set(old.map(b=>b.id));
+    cachedBookings = cachedBookings.filter(b=>!removed.has(b.id));
+    renderAll();
+    toast(`تنظيف تلقائي: حُذف ${old.length} حجز مضى على تاريخه أكثر من ${AUTO_PURGE_DAYS} يوم`);
+  }catch(e){ console.warn("auto purge failed", e); }
 }
 
 /* رسالة خطأ دقيقة لفشل تحميل الحجوزات — توضّح السبب والحل */
