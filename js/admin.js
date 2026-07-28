@@ -294,10 +294,6 @@ function renderDashboard(){
     <div class="stat-card"><div class="sc-top"><span class="sc-label">الإيرادات المتوقعة</span><span class="sc-icon"><i class="fa-solid fa-coins"></i></span></div><div class="sc-val">${totalRev.toLocaleString("ar")} <small>درهم</small></div></div>
     <div class="stat-card"><div class="sc-top"><span class="sc-label">الإشغال (30 يوم)</span><span class="sc-icon"><i class="fa-solid fa-chart-line"></i></span></div><div class="sc-val">${occPct}%</div><div class="sc-trend">${units.length} استراحات</div></div>
     <div class="stat-card"><div class="sc-top"><span class="sc-label">استراحات نشطة</span><span class="sc-icon"><i class="fa-solid fa-house"></i></span></div><div class="sc-val">${units.length}</div></div>`;
-  if(archivedN > 0){
-    document.getElementById("dash-stats").insertAdjacentHTML("beforeend",
-      `<div style="grid-column:1/-1;color:var(--a-muted);font-size:.75rem"><i class="fa-solid fa-box-archive" aria-hidden="true"></i> الإجماليان أعلاه يشملان الأرشيف: ${archivedN.toLocaleString("ar")} حجز (${archivedRev.toLocaleString("ar")} درهم) حُذفت سجلاته تلقائياً بعد ${AUTO_PURGE_DAYS} يوماً من تاريخها — الأرقام الحقيقية الكاملة محفوظة.</div>`);
-  }
 
   const counts = units.map(u=>({name:u.name, n:perUnit[u.id]||0}));
   const max = Math.max(1,...counts.map(c=>c.n));
