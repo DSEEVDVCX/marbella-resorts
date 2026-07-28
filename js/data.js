@@ -7,6 +7,9 @@ const SETTINGS = {
   brandNameEn: "Marbella Resorts",
   // بريد الأدمن — تقرأه قواعد Firestore من settings/main (adminEmail) للتحقق من صلاحيات الكتابة
   adminEmail: "admin@marbella-resorts.com",
+  // مفتاح ImgBB لرفع صور الاستراحات — افتراضي دائم حتى لا يضيع الرفع
+  // لو فُقد من مستند Firestore (يمكن تغييره من لوحة التحكم ← الإعدادات)
+  imgbbKey: "a6d93191c6f3a6aaf27f8d9ce4f6fead",
   // رقم واتساب بدون + أو مسافات (الصيغة الدولية)
   whatsapp: "971566222566",
   phoneDisplay: "+971 56 622 2566",
@@ -401,7 +404,10 @@ if(!window.MarbellaStore){
       window.dispatchEvent(new Event("settingsUpdated"));
       if(!window.db) return;
       try{
-        await db.collection("settings").doc("main").set(s);
+        // دمج (لا استبدال): أي حفظ لا يمسح حقولاً موجودة في Firestore
+        // لكنها غير محمّلة في النسخة المحلية (مثل imgbbKey) — كان سبب
+        // اختفاء المفتاح كل فترة.
+        await db.collection("settings").doc("main").set(s, { merge:true });
       }catch(e){
         // فشلت الكتابة (صلاحيات/شبكة): استرجع الحالة السابقة حتى لا تعرض
         // اللوحة بيانات وهمية غير محفوظة ثم أبلغ الطبقات العليا بالخطأ

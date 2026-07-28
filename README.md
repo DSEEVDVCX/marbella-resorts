@@ -156,7 +156,7 @@ service cloud.firestore {
 > **Booking confirmation flow:** a visitor request is saved to `bookings` only — the date stays free on the site until the admin confirms it. In Dashboard → Bookings, click the ✓ button on a request (or click the day in the Booked Dates calendar) to mark the day as booked; it then blocks new bookings on the site instantly via the live listener. Days with pending requests show an orange counter on the dashboard calendar.
 
 ### Uploading Resort Images (via ImgBB — completely free)
-The project uses **ImgBB** to upload resort images instead of Firebase Storage (completely free, unlimited space, no credit card required). The key is stored in `SETTINGS.imgbbKey` (in Firestore under `settings/main`).
+The project uses **ImgBB** to upload resort images instead of Firebase Storage (completely free, unlimited space, no credit card required). The key is stored in `SETTINGS.imgbbKey` — a **default key ships in `js/data.js`** so uploads always work; it is mirrored into Firestore (`settings/main.imgbbKey`) automatically on admin login and on every settings save (saves use **merge**, so the key is never wiped by other saves). You can override it from Dashboard → Settings → "ImgBB API Key".
 
 #### Getting a free ImgBB key
 1. Open [api.imgbb.com](https://api.imgbb.com/) → sign up / log in with a Google account or email.
