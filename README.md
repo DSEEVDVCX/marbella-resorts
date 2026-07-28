@@ -79,7 +79,7 @@ service cloud.firestore {
 
     function validBooking(d) {
       return d is map
-        && d.keys().hasOnly(['id','unitId','unitName','date','name','phone','price','currency','notes','createdAt'])
+        && d.keys().hasOnly(['id','unitId','unitName','date','stayType','stayLabel','isWeekend','periodLabel','name','phone','notes','price','currency','pledge','status','createdAt'])
         && d.keys().hasAll(['id','unitId','unitName','date','name','phone','price','currency','createdAt'])
         && isStr(d.id, 64)
         && isStr(d.unitId, 64)
@@ -90,7 +90,13 @@ service cloud.firestore {
         && d.price is number && d.price >= 0
         && isStr(d.currency, 10)
         && isStr(d.createdAt, 40)
-        && (!d.keys().hasAll(['notes']) || isStr(d.notes, 1000));
+        && (!d.keys().hasAny(['notes']) || isStr(d.notes, 1000))
+        && (!d.keys().hasAny(['stayType']) || isStr(d.stayType, 10))
+        && (!d.keys().hasAny(['stayLabel']) || isStr(d.stayLabel, 40))
+        && (!d.keys().hasAny(['periodLabel']) || isStr(d.periodLabel, 40))
+        && (!d.keys().hasAny(['status']) || isStr(d.status, 20))
+        && (!d.keys().hasAny(['isWeekend']) || d.isWeekend is bool)
+        && (!d.keys().hasAny(['pledge']) || d.pledge is bool);
     }
 
     function validReview(d) {
@@ -133,6 +139,10 @@ service cloud.firestore {
 }
 ```
 > Note: when `units` writes are admin-only, likes/dates will not update automatically from the site (which is the safest option). The admin can manage booked dates from the dashboard.
+>
+> **Admin login:** the dashboard signs in exclusively with the **Firebase Email/Password account** matching `ADMIN_EMAIL`. Any rejected save shows a clear error message and the old values are restored automatically.
+>
+> **Booking confirmation flow:** a visitor request is saved to `bookings` only — the date stays free on the site until the admin confirms it. In Dashboard → Bookings, click the ✓ button on a request (or click the day in the Booked Dates calendar) to mark the day as booked; it then blocks new bookings on the site instantly via the live listener. Days with pending requests show an orange counter on the dashboard calendar.
 
 ### Uploading Resort Images (via ImgBB — completely free)
 The project uses **ImgBB** to upload resort images instead of Firebase Storage (completely free, unlimited space, no credit card required). The key is stored in `SETTINGS.imgbbKey` (in Firestore under `settings/main`).

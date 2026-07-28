@@ -41,17 +41,27 @@ function toast(msg,isErr){
   let t=document.querySelector(".a-toast");
   if(!t){t=document.createElement("div");document.body.appendChild(t);}
   t.className="a-toast"+(isErr?" err":"");t.textContent=msg;
-  clearTimeout(t._tm);t._tm=setTimeout(()=>t.remove(),3000);
+  clearTimeout(t._tm);t._tm=setTimeout(()=>t.remove(),4000);
+}
+/* رسالة خطأ موحّدة لعمليات الحفظ في Firestore مع سبب واضح */
+function saveError(e){
+  console.error("save failed", e);
+  const code = e && e.code ? e.code : "";
+  if(code === "permission-denied"){
+    return "لم تُحفظ التعديلات: لا صلاحية كتابة. تأكد من تسجيل الدخول بحساب الأدمن ومن قواعد Firestore.";
+  }
+  if(code === "unavailable" || code === "network-request-failed" || (typeof navigator !== "undefined" && !navigator.onLine)){
+    return "لم تُحفظ التعديلات: تحقّق من اتصال الإنترنت ثم أعد المحاولة.";
+  }
+  return "لم تُحفظ التعديلات في قاعدة البيانات (" + (code || "خطأ غير معروف") + ").";
 }
 // esc() مُعرّفة في js/utils.js (عامة) وتُحمَّل قبل admin.js عبر firebase-loader.js
 
 /* ===== المصادقة عبر Firebase Auth =====
-   الأدمن مستخدم Email/Password في Firebase Authentication.
-   كلمة admin مدعومة كدخول محلي سريع لاستعادة السلوك القديم. */
+   الدخول حصرياً بحساب الأدمن (Email/Password) في Firebase Authentication
+   حتى تملك الجلسة صلاحية الكتابة بموجب قواعد الأمان. */
 // ADMIN_EMAIL مُعرَّف مسبقاً في firebase-config.js — نستخدمه مباشرة عبر window
 const _ADMIN_EMAIL = window.ADMIN_EMAIL;
-const ADMIN_LOCAL_PASSWORD = "admin";
-let localAdminSession = sessionStorage.getItem("marbella_local_admin") === "1";
 
 async function enterAdmin(){
   await store.initData();     // تحميل الإعدادات والاستراحات من Firestore
@@ -92,19 +102,13 @@ document.getElementById("login-form").addEventListener("submit",async e=>{
   const err=document.getElementById("login-error");
   const info=document.getElementById("login-info");
   err.textContent=""; info.textContent="";
-  if(pass === ADMIN_LOCAL_PASSWORD){
-    localAdminSession = true;
-    sessionStorage.setItem("marbella_local_admin", "1");
-    await enterAdmin();
-    return;
-  }
   try{
     await auth.signInWithEmailAndPassword(_ADMIN_EMAIL, pass);
     // onAuthStateChanged سيتولّى عرض اللوحة
   }catch(ex){
     const code = ex && ex.code ? ex.code : "";
     let msg = "تعذّر تسجيل الدخول";
-    if(code==="auth/invalid-credential"||code==="auth/wrong-password"||code==="auth/user-not-found") msg="كلمة المرور غير صحيحة. استخدم admin أو كلمة مرور حساب Firebase.";
+    if(code==="auth/invalid-credential"||code==="auth/wrong-password"||code==="auth/user-not-found") msg="كلمة المرور غير صحيحة.";
     else if(code==="auth/too-many-requests") msg="محاولات كثيرة، حاول لاحقاً";
     else if(code==="auth/network-request-failed") msg="تحقّق من اتصال الإنترنت";
     err.textContent=msg;
@@ -125,8 +129,6 @@ document.getElementById("reset-pass-link").addEventListener("click",async ()=>{
 });
 
 document.getElementById("logout-btn").addEventListener("click",async ()=>{
-  localAdminSession = false;
-  sessionStorage.removeItem("marbella_local_admin");
   if(auth.currentUser && !auth.currentUser.isAnonymous) await auth.signOut();
   document.getElementById("admin-view").hidden=true;
   document.getElementById("login-view").style.display="grid";
@@ -135,11 +137,7 @@ document.getElementById("logout-btn").addEventListener("click",async ()=>{
 
 // بوابة العرض حسب حالة المصادقة
 auth.onAuthStateChanged(async (user) => {
-  if(localAdminSession){
-    await enterAdmin();
-    return;
-  }
-  if(user && user.email === _ADMIN_EMAIL){
+  if(user && !user.isAnonymous && user.email === _ADMIN_EMAIL){
     await enterAdmin();
   } else {
     if(_bookingsUnsub){ _bookingsUnsub(); _bookingsUnsub = null; }
@@ -245,13 +243,20 @@ function renderAdminCalendar(){
   const first=new Date(y,m,1).getDay();
   const days=new Date(y,m+1,0).getDate();
   const today=new Date();today.setHours(0,0,0,0);
+  // خريطة طلبات الحجز (من سجل الحجوزات) لهذه الاستراحة: iso → عدد الطلبات
+  const reqMap={};
+  (Array.isArray(cachedBookings)?cachedBookings:[]).forEach(b=>{
+    const match=(b.unitId===unit.id)||(b.unitName===unit.name);
+    if(match && b.date) reqMap[b.date]=(reqMap[b.date]||0)+1;
+  });
   let html=`<div class="admin-cal">${AR_DOW.map((d,i)=>`<div class="dow${(i===5||i===6)?' dow-weekend':''}">${d}</div>`).join("")}`;
   for(let i=0;i<first;i++) html+=`<div class="day empty"></div>`;
   for(let d=1;d<=days;d++){
     const date=new Date(y,m,d);const iso=toISO(date);
     const past=date<today;const booked=unit.booked.includes(iso);
     const weekend=isWeekendDate(date)&&!past&&!booked;
-    html+=`<div class="day ${past?'past':''} ${booked?'booked':''} ${weekend?'weekend':''}" data-iso="${iso}">${d}</div>`;
+    const reqs=reqMap[iso]||0;
+    html+=`<div class="day ${past?'past':''} ${booked?'booked':''} ${weekend?'weekend':''}" data-iso="${iso}">${d}${reqs?`<span class="req-badge" title="${reqs} طلب حجز">${reqs}</span>`:""}</div>`;
   }
   html+=`</div>`;
   document.getElementById("admin-calendar").innerHTML=html;
@@ -260,9 +265,16 @@ function renderAdminCalendar(){
       const units=store.getUnits();const iso=el.dataset.iso;
       const unit=units.find(u=>u.id===calUnitId);
       const i=unit.booked.indexOf(iso);
-      if(i>=0){unit.booked.splice(i,1);toast("تم إلغاء تحديد اليوم كمحجوز");}
-      else{unit.booked.push(iso);toast("تم تحديد اليوم كمحجوز");}
-      await store.setUnits(units);renderDashboard();renderAdminCalendar();
+      const wasBooked=i>=0;
+      if(wasBooked) unit.booked.splice(i,1);
+      else unit.booked.push(iso);
+      try{
+        await store.setUnits(units);
+        toast(wasBooked?"تم إلغاء تحديد اليوم كمحجوز":"تم تحديد اليوم كمحجوز");
+      }catch(e){
+        toast(saveError(e),true);   // فشل الحفظ — التراجع تم داخل المتجر
+      }
+      renderDashboard();renderAdminCalendar();
     });
   });
 }
@@ -348,9 +360,13 @@ function editUnit(id){
     const removedUrl = u.images[idx];
     if(!confirm("حذف هذه الصورة من الاستراحة؟")) return;
     u.images.splice(idx,1);
-    await store.setUnits(units);            // حدّث Firestore أولاً
-    await store.deleteImage(removedUrl);   // يزيل الإشارة فقط (ImgBB لا يحذف عبر API المجاني)
-    toast("تم حذف الصورة من المعرض");
+    try{
+      await store.setUnits(units);            // حدّث Firestore أولاً
+      await store.deleteImage(removedUrl);   // يزيل الإشارة فقط (ImgBB لا يحذف عبر API المجاني)
+      toast("تم حذف الصورة من المعرض");
+    }catch(e){
+      toast(saveError(e),true);
+    }
     // أعد فتح النافذة لتعكس الحالة الجديدة
     wrap.remove(); editUnit(id);
   });
@@ -374,6 +390,7 @@ function editUnit(id){
       progressEl.textContent = "";
       const msg = (e && e.message === "IMGBB_NO_KEY")
         ? "أضِف مفتاح ImgBB من الإعدادات أولاً"
+        : (e && e.code) ? saveError(e)
         : "تعذّر رفع الصورة — تحقّق من مفتاح ImgBB والاتصال";
       toast(msg, true);
     }
@@ -400,7 +417,14 @@ function editUnit(id){
     if(!u.bedsEn) u.bedsEn = u.roomsNum + " Bedrooms";
     if(!u.bathsEn) u.bathsEn = u.bathsNum + " Bathrooms";
     u.features=wrap.querySelector("#e-feat").value.split(/[،,]/).map(s=>s.trim()).filter(Boolean);
-    await store.setUnits(units);wrap.remove();renderAll();toast("تم حفظ التعديلات");
+    try{
+      await store.setUnits(units);
+      wrap.remove();renderAll();toast("تم حفظ التعديلات");
+    }catch(e){
+      // فشل الحفظ: المتجر استرجع الحالة السابقة — أبلغ الأدمن بالسبب وأعد فتح المحرر بالقيم الفعلية
+      toast(saveError(e),true);
+      wrap.remove();editUnit(id);renderAll();
+    }
   });
 }
 
@@ -413,8 +437,14 @@ function renderBookings(filter=""){
   const bookings=(Array.isArray(cachedBookings) ? cachedBookings : []).slice();
   const f=filter.trim().toLowerCase();
   const list=f?bookings.filter(b=>[bookingVal(b,"name"),bookingVal(b,"phone"),bookingVal(b,"unitName"),bookingVal(b,"date")].join(" ").toLowerCase().includes(f)):bookings;
+  const units=store.getUnits();
+  // الحجز "مؤكد" إذا كان يومه محجوزاً فعلياً في بيانات الاستراحة (مصدر الحقيقة للموقع)
+  const isConfirmed=b=>{
+    const u=units.find(x=>x.id===b.unitId)||units.find(x=>x.name===b.unitName);
+    return b.status==="confirmed" || !!(u && (u.booked||[]).includes(b.date));
+  };
   document.getElementById("bookings-table").innerHTML=list.length?`
-    <table class="tbl"><thead><tr><th>الاسم</th><th>الاستراحة</th><th>النوع</th><th>التاريخ</th><th>الجوال</th><th>السعر</th><th>تاريخ الطلب</th><th>إجراءات</th></tr></thead><tbody>
+    <table class="tbl"><thead><tr><th>الاسم</th><th>الاستراحة</th><th>النوع</th><th>التاريخ</th><th>الجوال</th><th>السعر</th><th>تاريخ الطلب</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>
     ${list.map(b=>{
       const stayBadge = b.stayType === "day"
         ? `<span class="tag" style="background:#fef3c7;color:#92400e">نهاري</span>`
@@ -423,11 +453,17 @@ function renderBookings(filter=""){
       const periodBadge = weekend
         ? ` <span class="tag" style="background:#ede9fe;color:#5b21b6">ويكند</span>`
         : ` <span class="tag" style="background:#f1f5f9;color:#475569">أسبوع</span>`;
+      const confirmed = isConfirmed(b);
+      const statusBadge = confirmed
+        ? `<span class="tag" style="background:#dcfce7;color:#166534">مؤكد</span>`
+        : `<span class="tag new">بانتظار التأكيد</span>`;
       return `<tr>
       <td>${esc(bookingVal(b,"name"))}${b.notes?`<br><small style="color:var(--a-muted)">${esc(b.notes)}</small>`:""}</td>
       <td>${esc(bookingVal(b,"unitName"))}</td><td>${stayBadge}${periodBadge}</td><td>${esc(bookingVal(b,"date"))}</td><td>${esc(bookingVal(b,"phone"))}</td><td>${bookingPrice(b).toLocaleString("ar")} ${esc(bookingVal(b,"currency"))}</td>
       <td>${bookingDateLabel(b.createdAt)}</td>
+      <td>${statusBadge}</td>
       <td><div class="row-actions">
+        ${confirmed?"":`<button class="icon-btn ok" data-confirm="${esc(b.id)}" title="تأكيد الحجز (حجز اليوم في الموقع)"><i class="fa-solid fa-check"></i></button>`}
         <a class="icon-btn" href="https://wa.me/${bookingVal(b,"phone").replace(/\D/g,'')}" target="_blank" rel="noopener" title="واتساب"><i class="fa-brands fa-whatsapp"></i></a>
         <button class="icon-btn del" data-del="${esc(b.id)}" title="حذف"><i class="fa-solid fa-trash"></i></button>
       </div></td></tr>`;
@@ -439,7 +475,29 @@ function renderBookings(filter=""){
       await store.deleteBooking(id);
       cachedBookings = cachedBookings.filter(x=>x.id!==id);
       renderAll();toast("تم حذف الحجز");
-    }catch(e){ toast("تعذّر حذف الحجز",true); }
+    }catch(e){ toast(saveError(e),true); }
+  }));
+  // تأكيد الحجز: يضيف اليوم إلى التواريخ المحجوزة في الاستراحة (ينعكس فوراً على الموقع)
+  document.querySelectorAll("[data-confirm]").forEach(btn=>btn.addEventListener("click",async ()=>{
+    const id = btn.dataset.confirm;
+    const bk = cachedBookings.find(x=>x.id===id);
+    if(!bk) return;
+    const units2 = store.getUnits();
+    const unit = units2.find(u=>u.id===bk.unitId) || units2.find(u=>u.name===bk.unitName);
+    if(!unit){ toast("تعذّر إيجاد الاستراحة الخاصة بهذا الحجز",true); return; }
+    if(!(unit.booked||[]).includes(bk.date)) unit.booked.push(bk.date);
+    try{
+      await store.setUnits(units2);
+      // علّم مستند الحجز كمؤكد (تحديث الأدمن مسموح في القواعد)
+      if(window.db && bk.id){
+        await db.collection("bookings").doc(String(bk.id)).set({ status:"confirmed" }, { merge:true }).catch(()=>{});
+        bk.status = "confirmed";
+      }
+      toast("تم تأكيد الحجز — اليوم أصبح محجوزاً في الموقع");
+    }catch(e){
+      toast(saveError(e),true);
+    }
+    renderAll();
   }));
 }
 document.getElementById("bk-search").addEventListener("input",e=>renderBookings(e.target.value));
@@ -539,7 +597,13 @@ document.getElementById("settings-form").addEventListener("submit",async e=>{
   }
 
   if(document.getElementById("s-pledge")) s.pledgeText=document.getElementById("s-pledge").value.trim();
-  await store.setSettings(s);toast("تم حفظ الإعدادات");
+  try{
+    await store.setSettings(s);
+    toast("تم حفظ الإعدادات");
+  }catch(e){
+    toast(saveError(e),true);
+    renderSettings();   // أعد عرض القيم الفعلية المحفوظة بعد التراجع
+  }
 });
 
 /* ===== حفظ العرض الترويجي ===== */
@@ -554,15 +618,25 @@ document.getElementById("offer-form").addEventListener("submit",async e=>{
     target: document.getElementById("o-target").value,
     updatedAt: Date.now()
   };
-  await store.setSettings(s);
-  toast(s.offer.active ? "تم تفعيل العرض وحفظه" : "تم حفظ العرض (غير مُفعّل)");
+  try{
+    await store.setSettings(s);
+    toast(s.offer.active ? "تم تفعيل العرض وحفظه" : "تم حفظ العرض (غير مُفعّل)");
+  }catch(e){
+    toast(saveError(e),true);
+    renderOffers();
+  }
 });
 document.getElementById("o-disable").addEventListener("click", async ()=>{
   const s=store.getSettings();
   s.offer = Object.assign({}, s.offer||{}, { active:false, updatedAt: Date.now() });
-  await store.setSettings(s);
-  renderOffers();
-  toast("تم إيقاف العرض");
+  try{
+    await store.setSettings(s);
+    renderOffers();
+    toast("تم إيقاف العرض");
+  }catch(e){
+    toast(saveError(e),true);
+    renderOffers();
+  }
 });
 document.getElementById("pass-form").addEventListener("submit",async e=>{
   e.preventDefault();

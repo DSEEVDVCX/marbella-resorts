@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-  <link rel="stylesheet" href="css/admin.css?v=17" />
+  <link rel="stylesheet" href="css/admin.css?v=18" />
 </head>
 <body>
 
@@ -28,7 +28,7 @@
         <input id="admin-pass" type="password" placeholder="••••••••" autocomplete="current-password" required />
         <button type="submit" class="a-btn" style="width:100%;justify-content:center;margin-top:.6rem"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> دخول</button>
       </form>
-      <p class="login-hint">يمكن الدخول بكلمة <strong>admin</strong> أو كلمة مرور حساب Firebase.</p>
+      <p class="login-hint">الدخول بكلمة مرور حساب الأدمن في Firebase.</p>
       <button type="button" class="link-reset" id="reset-pass-link">نسيت كلمة المرور؟ إرسال رابط الاستعادة</button>
     </div>
   </div>
@@ -78,7 +78,7 @@
             <h3>إدارة التواريخ المحجوزة</h3>
             <div class="cal-unit-tabs" id="cal-unit-tabs"></div>
           </div>
-          <p style="color:var(--a-muted);font-size:.82rem;margin-bottom:.8rem">انقر على أي يوم لتحديده/إلغاء تحديده كمحجوز. التغييرات تنعكس مباشرة على التقويم في الموقع.</p>
+          <p style="color:var(--a-muted);font-size:.82rem;margin-bottom:.8rem">انقر على أي يوم لتحديده/إلغاء تحديده كمحجوز. التغييرات تنعكس مباشرة على التقويم في الموقع. الرقم البرتقالي على اليوم = عدد طلبات الحجز الواردة له من الموقع (راجعها في «سجل الحجوزات» ثم أكّدها).</p>
           <div id="admin-calendar"></div>
           <div style="display:flex;gap:.5rem;margin-top:1rem;align-items:center;flex-wrap:wrap">
             <button class="a-btn ghost" id="cal-prev"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i> السابق</button>
@@ -204,7 +204,7 @@
   </div>
 
   <!-- Firebase (مُركَّز عبر firebase-loader.js) -->
-  <script src="js/firebase-loader.js?v=25"></script>
-  <script src="js/admin.js?v=24"></script>
+  <script src="js/firebase-loader.js?v=26"></script>
+  <script src="js/admin.js?v=25"></script>
 </body>
 </html>

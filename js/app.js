@@ -502,6 +502,25 @@ function validatePhone(){
   setFieldError("guest-phone",""); return true;
 }
 
+/* ===== إعادة ربط الاستراحة المفتوحة بعد تحديث البيانات =====
+   UNITS تُستبدل كائناتها بالكامل عند أي تحديث من Firestore، فيصبح
+   currentUnit مرجعاً قديماً (سعر/تواريخ قديمة). نعيد حلّه من المصفوفة
+   ونعيد رسم التقويم والسعر إن كانت نافذة الحجز مفتوحة. */
+function resyncCurrentUnit(){
+  const modal = document.getElementById("booking-modal");
+  if(!currentUnit || !modal || modal.hidden) return;
+  const fresh = UNITS.find(u => u.id === currentUnit.id);
+  if(!fresh || fresh === currentUnit) return;
+  currentUnit = fresh;
+  // إن أصبح اليوم المختار محجوزاً بعد التحديث، ألغِ اختياره
+  if(selectedDate && (currentUnit.booked||[]).includes(toISO(selectedDate))){
+    selectedDate = null;
+    showToast("هذا اليوم أصبح محجوزاً — اختر تاريخاً آخر","err");
+  }
+  renderCalendar();
+  updateBookingSub();
+}
+
 /* ===== فتح نافذة الحجز ===== */
 function openBooking(unitId){
   currentUnit = UNITS.find(u=>u.id===unitId);
@@ -598,16 +617,52 @@ async function sendToWhatsApp(){
   const name = document.getElementById("guest-name").value.trim();
   const phone = document.getElementById("guest-phone").value.trim();
   const notes = document.getElementById("guest-notes").value.trim();
-  const weekend = isWeekendDate(selectedDate);
-  const price = getStayPrice(currentUnit, selectedDate);
-  const stayLabel = getStayLabel();
-  const periodLabel = getPeriodLabel(weekend);
-  const deposit = settingNumber(SETTINGS.depositAmount, 500);
 
   const btn = document.getElementById("send-whatsapp");
   _bookingInFlight = true;
   btn.setAttribute("aria-busy","true");
   btn.disabled = true;
+
+  /* تحقّق حي من الخادم قبل تأكيد الطلب: يمنع إرسال سعر قديم (كاش/صفحة
+     مفتوحة منذ زمن) أو حجز يوم أصبح محجوزاً بعد فتح النافذة. */
+  if(window.MarbellaStore && window.MarbellaStore.refreshUnit){
+    try{
+      const fresh = await Promise.race([
+        window.MarbellaStore.refreshUnit(currentUnit.id),
+        new Promise(r => setTimeout(() => r(null), 4000))
+      ]);
+      if(fresh) currentUnit = fresh;
+    }catch(e){ /* نكمل بالبيانات المحلية عند تعذّر الجلب */ }
+  }
+
+  // أُلغي اختيار اليوم أثناء المزامنة (أصبح محجوزاً) — أوقف الإرسال
+  if(!selectedDate){
+    _bookingInFlight = false;
+    btn.removeAttribute("aria-busy");
+    btn.disabled = false;
+    return false;
+  }
+
+  // اليوم أصبح محجوزاً (تأكّد من الخادم أو تحديث لحظي): أوقف الإرسال
+  if((currentUnit.booked||[]).includes(toISO(selectedDate))){
+    selectedDate = null;
+    renderCalendar();
+    updateBookingSub();
+    showToast("عذراً، هذا اليوم أصبح محجوزاً — اختر تاريخاً آخر","err");
+    _bookingInFlight = false;
+    btn.removeAttribute("aria-busy");
+    btn.disabled = false;
+    return false;
+  }
+
+  // أعد حساب السعر من أحدث بيانات وحدّث العرض إن تغيّر
+  const weekend = isWeekendDate(selectedDate);
+  const price = getStayPrice(currentUnit, selectedDate);
+  updateBookingSub();
+
+  const stayLabel = getStayLabel();
+  const periodLabel = getPeriodLabel(weekend);
+  const deposit = settingNumber(SETTINGS.depositAmount, 500);
 
   const dStr = `${selectedDate.getDate()} ${AR_MONTHS[selectedDate.getMonth()]} ${selectedDate.getFullYear()}`;
   let msg = `${SETTINGS.introMessage}\n\n`;
@@ -793,6 +848,7 @@ function init(){
     renderUnits();
     buildFilterChips();
     updateFavCount();
+    resyncCurrentUnit();   // مزامنة نافذة الحجز إن كانت مفتوحة (سعر/تواريخ)
   });
   // إعادة تطبيق الإعدادات (العرض، الأسعار، رقم الواتساب...) عند تغييرها من لوحة التحكم
   window.addEventListener("settingsUpdated", () => {

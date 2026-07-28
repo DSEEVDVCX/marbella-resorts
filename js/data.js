@@ -392,16 +392,28 @@ if(!window.MarbellaStore){
     /* ===== الإعدادات ===== */
     getSettings(){ return Object.assign({}, SETTINGS); },
     async setSettings(s){
+      const prev = Object.assign({}, SETTINGS);
       Object.assign(SETTINGS, s);
       // أبلغ الصفحات فوراً محلياً (onSnapshot قد يتأخر أو يُتجاهل بسبب hasPendingWrites)
       _lastSettingsKey = JSON.stringify({offer: SETTINGS.offer});
       window.dispatchEvent(new Event("settingsUpdated"));
-      if(window.db) await db.collection("settings").doc("main").set(s);
+      if(!window.db) return;
+      try{
+        await db.collection("settings").doc("main").set(s);
+      }catch(e){
+        // فشلت الكتابة (صلاحيات/شبكة): استرجع الحالة السابقة حتى لا تعرض
+        // اللوحة بيانات وهمية غير محفوظة ثم أبلغ الطبقات العليا بالخطأ
+        Object.assign(SETTINGS, prev);
+        _lastSettingsKey = JSON.stringify({offer: SETTINGS.offer});
+        window.dispatchEvent(new Event("settingsUpdated"));
+        throw e;
+      }
     },
 
     /* ===== الاستراحات ===== */
     getUnits(){ return JSON.parse(JSON.stringify(UNITS)); },
     async setUnits(arr){
+      const prev = JSON.parse(JSON.stringify(UNITS));
       UNITS.splice(0, UNITS.length, ...JSON.parse(JSON.stringify(arr)));
       // أبلغ الصفحات المفتوحة بإعادة العرض فوراً (لا ننتظر onSnapshot الذي قد
       // يطلق أولاً من cache محلي قديم ويمحو التحديث المحلي مؤقتاً)
@@ -409,9 +421,34 @@ if(!window.MarbellaStore){
       if(!window.db) return;
       const batch = db.batch();
       arr.forEach(u => batch.set(db.collection("units").doc(u.id), u));
-      await batch.commit();
+      try{
+        await batch.commit();
+      }catch(e){
+        // فشلت الكتابة: استرجع النسخة السابقة لتطابق الواجهة قاعدة البيانات
+        UNITS.splice(0, UNITS.length, ...prev);
+        window.dispatchEvent(new Event("unitsUpdated"));
+        throw e;
+      }
       // أعد الإبلاغ بعد تأكيد الكتابة في الخادم
       window.dispatchEvent(new Event("unitsUpdated"));
+    },
+
+    /* جلب أحدث نسخة من استراحة مباشرة من الخادم (يتجاوز الكاش المحلي)
+       وتحديث UNITS بها — يُستخدم قبل تأكيد الحجز لضمان سعر/توفر صحيحين.
+       يُرجع null عند تعذّر الجلب (يُستخدم الكاش الحالي كبديل). */
+    async refreshUnit(unitId){
+      if(!window.db) return null;
+      try{
+        const snap = await db.collection("units").doc(String(unitId)).get({ source:"server" });
+        if(!snap.exists) return null;
+        const data = snap.data();
+        const def = DEFAULT_UNITS.find(u => u.id === data.id);
+        const fresh = def ? mergeUnit(def, data) : data;
+        const i = UNITS.findIndex(u => u.id === fresh.id);
+        if(i >= 0) UNITS.splice(i, 1, fresh); else UNITS.push(fresh);
+        window.dispatchEvent(new Event("unitsUpdated"));
+        return fresh;
+      }catch(e){ console.warn("refreshUnit failed", e); return null; }
     },
 
     /* ===== الحجوزات ===== */
