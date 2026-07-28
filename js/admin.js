@@ -634,7 +634,6 @@ function renderSettings(){
   document.getElementById("s-intro").value=s.introMessage||"";
   if(document.getElementById("s-email")) document.getElementById("s-email").value=s.email||"";
   if(document.getElementById("s-bank")) document.getElementById("s-bank").value=s.bankAccount||"";
-  if(document.getElementById("s-imgbb")) document.getElementById("s-imgbb").value=s.imgbbKey||"";
   if(document.getElementById("s-deposit")) document.getElementById("s-deposit").value=s.depositAmount||"";
   if(document.getElementById("s-pledge")) document.getElementById("s-pledge").value=s.pledgeText||"";
   renderLogoPicker(s.logoPath || "assets/images/logo.png");
@@ -688,11 +687,9 @@ document.getElementById("settings-form").addEventListener("submit",async e=>{
   s.introMessage=document.getElementById("s-intro").value.trim();
   if(document.getElementById("s-email")) s.email=document.getElementById("s-email").value.trim();
   if(document.getElementById("s-bank")) s.bankAccount=document.getElementById("s-bank").value.trim();
-  // مفتاح ImgBB: إن تُرك فارغاً نُبقي المفتاح الافتراضي (لا نكتب فراغاً يخفي المفتاح)
-  if(document.getElementById("s-imgbb")){
-    const k = document.getElementById("s-imgbb").value.trim();
-    if(k) s.imgbbKey = k;
-  }
+  // ملاحظة: مفتاح ImgBB لا يُدار من الواجهة (حماية من التعديل بالخطأ) —
+  // يبقى الافتراضي في data.js ولا تلمسه الإعدادات نهائياً
+  delete s.imgbbKey;
   const logoChoice = document.querySelector('input[name="logo-choice"]:checked');
   if(logoChoice) s.logoPath = logoChoice.value;
   if(document.getElementById("s-deposit")){
