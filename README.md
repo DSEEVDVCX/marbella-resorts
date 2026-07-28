@@ -135,6 +135,11 @@ service cloud.firestore {
       allow delete, update: if isAdmin();
     }
 
+    // Archived totals (lifetime bookings count/revenue) — admin only
+    match /stats/main {
+      allow read, write: if isAdmin();
+    }
+
     match /reviews/{id} {
       allow read: if true;
       allow create: if isSignedIn() && validReview(request.resource.data);
@@ -175,7 +180,7 @@ The project uses **ImgBB** to upload resort images instead of Firebase Storage (
 ## Admin Dashboard
 Open `admin.html`. Log in with the admin account (Email/Password) in Firebase Authentication.
 - Manage booked dates, edit prices and descriptions, booking history, CSV export, general settings, change password.
-- **Auto-cleanup:** bookings whose date passed more than 30 days ago are deleted automatically on dashboard login (keeps reads low — see Spark plan limits below). Export CSV first if you need long-term history.
+- **Auto-cleanup with archive:** bookings whose date passed more than 30 days ago are deleted automatically on dashboard login — but their count and revenue are **archived first** into `stats/main`, so the dashboard lifetime totals (إجمالي الحجوزات / الإيرادات) always show the true historical numbers. Export CSV if you need per-booking history beyond 30 days.
 - View and delete guest reviews (the "Reviews" section).
 - Upload/remove resort images via ImgBB from the resort edit dialog (key from Settings).
 - "Forgot password?" sends a recovery link to the email registered in `ADMIN_EMAIL`.

@@ -10,9 +10,11 @@ let cachedBookings = [];
 let _bookingsUnsub = null;
 let bookingsLoadError = "";
 
-/* الحجوزات التي مضى على تاريخها أكثر من هذه المدة تُحذف تلقائياً عند دخول اللوحة
-   (يبقى سجل حديث نظيف، وتبقى قراءات الحجوزات صغيرة بعيداً عن حدود الخطة المجانية) */
+/* الحجوزات التي مضى على تاريخها أكثر من هذه المدة تُحذف تلقائياً عند دخول اللوحة —
+   لكن بعد **أرشفة** عددها وإيرادها في stats/main حتى تبقى الأرقام التاريخية
+   الحقيقية في لوحة المعلومات للأبد (لا تنقص الإجماليات كل شهر). */
 const AUTO_PURGE_DAYS = 30;
+let cachedStats = { totalBookings: 0, totalRevenue: 0 };
 
 const LOGO_OPTIONS = [
   { label:"اللوقو الحالي", path:"assets/images/logo.png" },
@@ -86,7 +88,15 @@ async function enterAdmin(){
     cachedBookings = [];
     bookingsLoadError = bookingsErrorMessage(e);
   }
-  purgeOldBookings();          // تنظيف تلقائي بالخلفية — لا يحجب اللوحة
+  purgeOldBookings();          // تنظيف تلقائي مع أرشفة — بالخلفية لا يحجب اللوحة
+  // تحميل الإجماليات المؤرشفة (عدد/إيراد الحجوزات المحذوفة تلقائياً)
+  try{
+    const sd = await db.collection("stats").doc("main").get();
+    if(sd.exists){
+      const d = sd.data()||{};
+      cachedStats = { totalBookings:+d.totalBookings||0, totalRevenue:+d.totalRevenue||0 };
+    }
+  }catch(e){ console.warn("stats load failed", e); }
   await loadReviews();        // تحميل التقييمات
   if(_bookingsUnsub){ _bookingsUnsub(); _bookingsUnsub = null; }
   // اشتراك لحظي على الحجوزات: نستخدم بيانات اللقطة مباشرة (لا جلب مكرر قد يفشل)
@@ -108,9 +118,9 @@ async function enterAdmin(){
   showAdmin();
 }
 
-/* تنظيف تلقائي: حذف الحجوزات التي مضى على تاريخها أكثر من AUTO_PURGE_DAYS يوماً.
-   يُستدعى بعد تحميل الحجوزات في اللوحة (الحذف صلاحية الأدمن بموجب القواعد).
-   يعمل بالخلفية ولا يحجب عرض اللوحة. */
+/* تنظيف تلقائي مع أرشفة: قبل حذف الحجوزات المنتهية نجمع عددها وإيرادها
+   في مستند stats/main (تراكمي دائم). ترتيب العمليات مهم: الأرشفة أولاً —
+   إن فشلت (مثلاً قواعد قديمة بلا stats) لا يُحذف شيء حفاظاً على الأرقام. */
 async function purgeOldBookings(){
   if(!window.db || !Array.isArray(cachedBookings)) return;
   const cutoff = new Date(); cutoff.setHours(0,0,0,0);
@@ -123,7 +133,18 @@ async function purgeOldBookings(){
   });
   if(!old.length) return;
   try{
-    for(let i=0;i<old.length;i+=400){          // حد 500 عملية لكل batch
+    // 1) أرشفة الإجماليات أولاً (increment ذرّي — آمن مع تعدد الجلسات)
+    const cnt = old.length;
+    const rev = old.reduce((s,b)=>s+bookingPrice(b), 0);
+    await db.collection("stats").doc("main").set({
+      totalBookings: firebase.firestore.FieldValue.increment(cnt),
+      totalRevenue:  firebase.firestore.FieldValue.increment(rev),
+      updatedAt: new Date().toISOString()
+    }, { merge:true });
+    cachedStats.totalBookings = (cachedStats.totalBookings||0) + cnt;
+    cachedStats.totalRevenue  = (cachedStats.totalRevenue||0) + rev;
+    // 2) ثم الحذف على دفعات (حد 500 عملية لكل batch)
+    for(let i=0;i<old.length;i+=400){
       const batch = db.batch();
       old.slice(i,i+400).forEach(b=>batch.delete(db.collection("bookings").doc(String(b.id))));
       await batch.commit();
@@ -131,8 +152,8 @@ async function purgeOldBookings(){
     const removed = new Set(old.map(b=>b.id));
     cachedBookings = cachedBookings.filter(b=>!removed.has(b.id));
     renderAll();
-    toast(`تنظيف تلقائي: حُذف ${old.length} حجز مضى على تاريخه أكثر من ${AUTO_PURGE_DAYS} يوم`);
-  }catch(e){ console.warn("auto purge failed", e); }
+    toast(`أُرشف ${cnt} حجزاً منتهياً (${rev.toLocaleString("ar")} درهم) ثم حُذف — الإجماليات محفوظة`);
+  }catch(e){ console.warn("auto purge failed (kept bookings intact)", e); }
 }
 
 /* رسالة خطأ دقيقة لفشل تحميل الحجوزات — توضّح السبب والحل */
@@ -259,6 +280,10 @@ function renderDashboard(){
     if(uid && perUnit[uid]!=null) perUnit[uid]++;
   });
 
+  // أضِف الإجماليات المؤرشفة (الحجوزات المحذوفة تلقائياً) — الأرقام الحقيقية الكاملة
+  const archivedN = cachedStats.totalBookings||0, archivedRev = cachedStats.totalRevenue||0;
+  totalBookings += archivedN; totalRev += archivedRev;
+
   const now=new Date();now.setHours(0,0,0,0);
   const in30=new Date(now);in30.setDate(in30.getDate()+30);
   const occCount = units.reduce((s,u)=>s+(u.booked||[]).filter(iso=>{const d=new Date(iso);return d>=now&&d<in30;}).length,0);
@@ -269,6 +294,10 @@ function renderDashboard(){
     <div class="stat-card"><div class="sc-top"><span class="sc-label">الإيرادات المتوقعة</span><span class="sc-icon"><i class="fa-solid fa-coins"></i></span></div><div class="sc-val">${totalRev.toLocaleString("ar")} <small>درهم</small></div></div>
     <div class="stat-card"><div class="sc-top"><span class="sc-label">الإشغال (30 يوم)</span><span class="sc-icon"><i class="fa-solid fa-chart-line"></i></span></div><div class="sc-val">${occPct}%</div><div class="sc-trend">${units.length} استراحات</div></div>
     <div class="stat-card"><div class="sc-top"><span class="sc-label">استراحات نشطة</span><span class="sc-icon"><i class="fa-solid fa-house"></i></span></div><div class="sc-val">${units.length}</div></div>`;
+  if(archivedN > 0){
+    document.getElementById("dash-stats").insertAdjacentHTML("beforeend",
+      `<div style="grid-column:1/-1;color:var(--a-muted);font-size:.75rem"><i class="fa-solid fa-box-archive" aria-hidden="true"></i> الإجماليان أعلاه يشملان الأرشيف: ${archivedN.toLocaleString("ar")} حجز (${archivedRev.toLocaleString("ar")} درهم) حُذفت سجلاته تلقائياً بعد ${AUTO_PURGE_DAYS} يوماً من تاريخها — الأرقام الحقيقية الكاملة محفوظة.</div>`);
+  }
 
   const counts = units.map(u=>({name:u.name, n:perUnit[u.id]||0}));
   const max = Math.max(1,...counts.map(c=>c.n));
@@ -740,6 +769,9 @@ document.getElementById("reset-all").addEventListener("click",async ()=>{
   if(confirm("سيتم حذف كل البيانات وإعادتها للوضع الافتراضي. متابعة؟")){
     try{
       await store.resetAll();
+      // صفّر الإجماليات المؤرشفة أيضاً (إعادة تعيين كاملة)
+      if(window.db) await db.collection("stats").doc("main").delete().catch(()=>{});
+      cachedStats = { totalBookings:0, totalRevenue:0 };
       cachedBookings = [];
       renderAll();toast("تمت إعادة التعيين");
     }catch(e){
