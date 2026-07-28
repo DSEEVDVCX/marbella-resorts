@@ -71,29 +71,56 @@ async function enterAdmin(){
   }catch(e){
     console.error("bookings load failed", e);
     cachedBookings = [];
-    bookingsLoadError = "تعذّر تحميل الحجوزات. تحقق من الاتصال وصلاحيات Firestore.";
+    bookingsLoadError = bookingsErrorMessage(e);
   }
   await loadReviews();        // تحميل التقييمات
   if(_bookingsUnsub){ _bookingsUnsub(); _bookingsUnsub = null; }
-  // اشتراك لحظي على الحجوزات لتحديث اللوحة عند وصول حجوزات جديدة
+  // اشتراك لحظي على الحجوزات: نستخدم بيانات اللقطة مباشرة (لا جلب مكرر قد يفشل)
   if(window.db){
-    _bookingsUnsub = db.collection("bookings").onSnapshot(async () => {
-      try{
-        cachedBookings = await store.getBookings();
-        bookingsLoadError = "";
-      }catch(e){
-        console.error("bookings refresh failed", e);
-        bookingsLoadError = "تعذّر تحديث الحجوزات.";
-      }
+    _bookingsUnsub = db.collection("bookings").onSnapshot(snap => {
+      const bks = [];
+      snap.forEach(d => { const data = d.data(); data.id = d.id; bks.push(data); });
+      bks.sort((a,b)=> String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
+      cachedBookings = bks;
+      bookingsLoadError = "";
       const active = document.querySelector(".section.active");
       if(active) renderAll();
     }, err => {
       console.warn("bookings snapshot error", err);
-      bookingsLoadError = "تعذّر الاشتراك في تحديثات الحجوزات. تحقق من صلاحيات Firestore.";
+      bookingsLoadError = bookingsErrorMessage(err);
       renderAll();
     });
   }
   showAdmin();
+}
+
+/* رسالة خطأ دقيقة لفشل تحميل الحجوزات — توضّح السبب والحل */
+function bookingsErrorMessage(e){
+  const code = e && e.code ? e.code : "";
+  if(code === "permission-denied"){
+    return "قواعد Firestore تمنع قراءة الحجوزات. انشر القواعد من ملف firestore.rules (أو من README) في Firebase Console ← Firestore ← Rules.";
+  }
+  if(code === "unavailable" || code === "network-request-failed" || (typeof navigator !== "undefined" && !navigator.onLine)){
+    return "تعذّر الاتصال بقاعدة البيانات. تحقّق من الإنترنت ثم أعد المحاولة.";
+  }
+  if(code === "failed-precondition" || code === "unimplemented"){
+    return "تعذّر تحميل الحجوزات: أغلق التبويبات الأخرى للموقع ثم حدّث الصفحة.";
+  }
+  return "تعذّر تحميل الحجوزات (" + (code || "خطأ غير معروف") + ").";
+}
+
+/* إعادة محاولة تحميل الحجوزات يدوياً */
+async function retryBookings(){
+  bookingsLoadError = "";
+  renderAll();
+  try{
+    cachedBookings = await store.getBookings();
+    bookingsLoadError = "";
+  }catch(e){
+    console.error("bookings retry failed", e);
+    bookingsLoadError = bookingsErrorMessage(e);
+  }
+  renderAll();
 }
 
 document.getElementById("login-form").addEventListener("submit",async e=>{
@@ -213,7 +240,7 @@ function renderDashboard(){
 
   const recent=bookings.slice(0,5);
   document.getElementById("dash-recent").innerHTML = bookingsLoadError
-    ? `<div class="tbl-empty">${esc(bookingsLoadError)}</div>`
+    ? `<div class="tbl-empty">${esc(bookingsLoadError)}<br><button class="a-btn ghost" id="dash-bk-retry" style="margin-top:.7rem"><i class="fa-solid fa-rotate"></i> إعادة المحاولة</button></div>`
     : recent.length?`
     <table class="tbl"><thead><tr><th>الاسم</th><th>الاستراحة</th><th>النوع</th><th>التاريخ</th><th>الجوال</th><th>الحالة</th></tr></thead><tbody>
     ${recent.map(b=>{
@@ -223,6 +250,10 @@ function renderDashboard(){
       return `<tr><td>${esc(bookingVal(b,"name"))}</td><td>${esc(bookingVal(b,"unitName"))}</td><td><small>${stay}${period}</small></td><td>${esc(bookingVal(b,"date"))}</td><td>${esc(bookingVal(b,"phone"))}</td><td><span class="tag new">جديد</span></td></tr>`;
     }).join("")}
     </tbody></table>`:`<div class="tbl-empty">لا توجد حجوزات بعد</div>`;
+  if(bookingsLoadError){
+    const rb=document.getElementById("dash-bk-retry");
+    if(rb) rb.addEventListener("click",retryBookings);
+  }
 }
 
 /* ===== تقويم الإدارة ===== */
@@ -431,7 +462,9 @@ function editUnit(id){
 /* ===== سجل الحجوزات ===== */
 function renderBookings(filter=""){
   if(bookingsLoadError){
-    document.getElementById("bookings-table").innerHTML = `<div class="tbl-empty">${esc(bookingsLoadError)}</div>`;
+    document.getElementById("bookings-table").innerHTML = `<div class="tbl-empty">${esc(bookingsLoadError)}<br><button class="a-btn ghost" id="bk-retry" style="margin-top:.7rem"><i class="fa-solid fa-rotate"></i> إعادة المحاولة</button></div>`;
+    const rb=document.getElementById("bk-retry");
+    if(rb) rb.addEventListener("click",retryBookings);
     return;
   }
   const bookings=(Array.isArray(cachedBookings) ? cachedBookings : []).slice();

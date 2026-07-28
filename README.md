@@ -68,12 +68,23 @@ Then visit: `http://localhost:8000`
 | `users` | `{uid}` | Visitor/admin preferences (lang, theme, favorites) |
 
 ### Recommended Firestore Security Rules
+> **The file `firestore.rules` in the repo root contains the exact rules to publish** (with `firebase.json` for one-command deployment). Publish them in one of two ways:
+> - **Firebase Console (easiest):** [console.firebase.google.com](https://console.firebase.google.com/) → your project → **Firestore Database → Rules** → paste the contents of `firestore.rules` → **Publish**.
+> - **Firebase CLI:** `firebase deploy --only firestore:rules` from the project folder.
+>
+> If bookings show "قواعد Firestore تمنع قراءة الحجوزات" in the dashboard, the published rules are missing/outdated — publish `firestore.rules` and reload.
+>
+> The admin email is read dynamically from `settings/main.adminEmail` (falling back to `admin@marbella-resorts.com`), so changing `ADMIN_EMAIL` never breaks the rules.
+
 ```
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function isSignedIn() { return request.auth != null; }
-    function isAdmin() { return isSignedIn() && request.auth.token.email == 'admin@marbella-resorts.com'; }
+    function adminEmail() {
+      return get(/databases/$(database)/documents/settings/main).data.get('adminEmail', 'admin@marbella-resorts.com');
+    }
+    function isAdmin() { return isSignedIn() && request.auth.token.email == adminEmail(); }
 
     function isStr(v, maxLen) { return v is string && v.size() <= maxLen; }
 

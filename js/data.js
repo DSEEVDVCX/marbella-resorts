@@ -5,6 +5,8 @@
 const SETTINGS = {
   brandName: "منتجعات ماربيلا",
   brandNameEn: "Marbella Resorts",
+  // بريد الأدمن — تقرأه قواعد Firestore من settings/main (adminEmail) للتحقق من صلاحيات الكتابة
+  adminEmail: "admin@marbella-resorts.com",
   // رقم واتساب بدون + أو مسافات (الصيغة الدولية)
   whatsapp: "971566222566",
   phoneDisplay: "+971 56 622 2566",
